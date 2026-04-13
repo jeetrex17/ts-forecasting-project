@@ -1,0 +1,11 @@
+pandas
+pyarrow
+numpy
+matplotlib
+seaborn
+statsmodels
+pmdarima
+scikit-learn
+torch
+neuralforecast
+jupyter
