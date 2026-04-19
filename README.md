@@ -2,114 +2,208 @@
 
 ## Overview
 
-A comprehensive study of time series forecasting methods applied to a hedge fund dataset from the Kaggle competition [*Hedge fund — Time series forecasting*](https://www.kaggle.com/competitions/ts-forecasting). This project systematically compares classical statistical models, gradient-boosted tree models, deep learning sequence models, and ensemble/hybrid approaches across thousands of related financial time series.
+This repository studies the Kaggle **Hedge fund — Time series forecasting** dataset as a panel forecasting problem. The cleaned workflow is now script-based and reproducible: exploratory notebooks can still be used for visual analysis, but the saved comparison artifacts should be generated from the Python scripts in `scripts/`.
+
+The main methodological changes in this repo are:
+
+- exact dataset naming based on the real schema (`y_target`, `weight`)
+- explicit separation between **full-validation ML**, **sampled classical**, **sampled deep-learning**, and **ensemble holdout** studies
+- leak-resistant ensemble evaluation using an early-validation **meta split** and a later-validation **holdout split**
+- reproducible shared utilities for metrics, feature engineering, and time-aware splits
 
 ## Dataset
 
-The dataset is a **panel of integer-indexed time series**. Each series is identified by a combination of categorical keys, and the target is a continuous numerical value.
+The dataset is a panel of integer-indexed time series with the following key columns:
 
 | Column | Description |
-|---|---|
+| --- | --- |
+| `id` | Unique row identifier |
 | `code` | Primary series identifier |
 | `sub_code` | Secondary series identifier |
 | `sub_category` | Category grouping |
 | `horizon` | Forecast horizon |
-| `ts_index` | Integer time index (the time axis) |
-| `target` | Continuous value to predict |
+| `ts_index` | Integer time index |
+| `y_target` | Continuous target value |
+| `weight` | Per-row competition weight |
 
-**Key characteristics:**
-- Multiple related series sharing structure across codes and sub-categories
-- Low signal-to-noise ratio
-- Potentially non-stationary processes
-- Data provided as Parquet files (`train.parquet` ~740MB, `test.parquet` ~139MB)
+Raw data is expected at:
 
-## Methods
-
-### Baselines
-- Zero prediction, last value, expanding mean, seasonal naive
-
-### Classical Statistical Models
-- **Exponential Smoothing (ETS)** — automatic model selection with trend/seasonality decomposition
-- **ARIMA / SARIMA** — autoregressive integrated moving average via `pmdarima` auto order selection
-- Full residual diagnostics (Ljung-Box, Shapiro-Wilk, heteroskedasticity tests)
-
-### Machine Learning (Global Models)
-- **LightGBM** and **XGBoost** — gradient boosted trees trained globally across all series
-- Causal feature engineering: lag features, rolling/expanding statistics, group-level target encodings
-- SHAP-based feature importance analysis
-- Time-series-aware hyperparameter tuning
-
-### Deep Learning
-- **LSTM / GRU** — recurrent neural network baselines
-- **N-BEATS** — neural basis expansion with interpretable trend/seasonality decomposition
-- **NHITS** — hierarchical interpolation for multi-scale forecasting
-- **Temporal Fusion Transformer (TFT)** — attention-based model with built-in interpretability
-- All trained globally across the panel via NeuralForecast
-
-### Ensemble & Hybrid Approaches
-- Simple average and inverse-error weighted ensembles
-- Stacking with a meta-learner trained on base model predictions
-- Per-series model selection (best model per group)
-- Sequential cascade: classical model residuals fed into ML/DL models
-- Ablation study on ensemble combinations
-
-## Evaluation
-
-Models are compared using multiple metrics:
-
-**Primary — Weighted Skill Score** (higher is better, range [0, 1]):
-
-$$\text{Score} = \sqrt{1 - \min\!\left(\max\!\left(\frac{\sum_i w_i (y_i - \hat{y}_i)^2}{\sum_i w_i y_i^2},\, 0\right),\, 1\right)}$$
-
-**Secondary:** RMSE, MAE, MAPE, MASE
-
-**Statistical rigor:** Diebold-Mariano tests for pairwise model comparison, performance breakdown by code/sub_category/horizon.
-
-## Project Structure
-
+```text
+data/ts-forecasting/train.parquet
+data/ts-forecasting/test.parquet
 ```
+
+The repository ignores `data/` because the Kaggle files are too large to version.
+
+## Implemented Studies
+
+### Classical sampled study
+
+Implemented in `scripts/run_classical_models.py`.
+
+- `Zero`
+- `Naive`
+- `Expanding Mean`
+- `Drift`
+- `ETS`
+- `ARIMA`
+
+Notes:
+
+- classical models are run on a stratified sampled subset of eligible series
+- causal walk-forward baselines are used for `Naive`, `Expanding Mean`, and `Drift`
+
+### Full-validation ML study
+
+Implemented in `scripts/run_ml_models.py`.
+
+- `LightGBM`
+- `XGBoost`
+
+Notes:
+
+- trained globally across all series
+- uses the 86 anonymized `feature_*` columns plus causal lag and rolling features
+- writes full-validation predictions for downstream evaluation
+
+### Sampled deep-learning study
+
+Implemented in `scripts/run_deep_learning_sampled.py`.
+
+- `LSTM`
+- `NBEATS`
+- `NHITS`
+
+Notes:
+
+- this is intentionally labeled as a **sampled** study
+- these models currently use target history only
+- they should not be ranked directly against the full-feature ML models without matching the evaluation scope
+
+### Ensemble holdout study
+
+Implemented in `scripts/run_ensemble_holdout.py`.
+
+- `Simple Average`
+- `Inverse RMSE Weighted`
+- `Optimal Weighted`
+- `Stacking (Ridge)`
+- `Per-Series Selection`
+
+Notes:
+
+- ensemble weights/selectors are fit on an early-validation **meta** slice
+- final ensemble scores are reported only on a later-validation **holdout** slice
+- the old notebook-style “cascade” has been removed from the cleaned pipeline because it was not a true residual-correction setup
+
+## Metric
+
+Primary metric: **Weighted Skill Score**.
+
+```text
+score = sqrt(1 - clip_0_1(sum(w * (y - y_hat)^2) / sum(w * y^2)))
+```
+
+Interpretation:
+
+- `1.0` is perfect
+- `0.0` means no gain over the clipped baseline threshold
+- values are clipped into `[0, 1]` only at the final ratio stage
+
+The shared implementation lives in [src/afm_project/metrics.py](/Users/jeetraj/Desktop/Everything/DAIICT/Sem_6/Applied_Forecasting_Methods/Project/src/afm_project/metrics.py:1).
+
+## Repository Layout
+
+```text
 Project/
-├── data/ts-forecasting/              # train.parquet, test.parquet (gitignored)
-├── notebooks/
-│   ├── 01_eda.ipynb                  # Exploratory data analysis
-│   ├── 02_classical_models.ipynb     # Baselines, ETS, ARIMA
-│   ├── 03_ml_models.ipynb            # LightGBM, XGBoost (global)
-│   ├── 04_deep_learning.ipynb        # LSTM, N-BEATS, NHITS, TFT
-│   ├── 05_ensemble_hybrid.ipynb      # Stacking, weighted, cascaded ensembles
-│   └── 06_comparison_report.ipynb    # Statistical tests, final comparison
+├── scripts/
+│   ├── run_classical_models.py
+│   ├── run_ml_models.py
+│   ├── run_deep_learning_sampled.py
+│   ├── run_ensemble_holdout.py
+│   ├── build_comparison_report.py
+│   └── run_pipeline.py
+├── src/afm_project/
+│   ├── config.py
+│   ├── features.py
+│   ├── io.py
+│   ├── metrics.py
+│   ├── splits.py
+│   └── stats.py
+├── tests/
+├── notebooks/                      # exploratory notebooks, optional
 ├── requirements.txt
+├── pyproject.toml
 └── README.md
 ```
 
 ## Setup
 
+The cleaned pipeline was developed against Python `3.14.3`.
+
 ```bash
+python -m venv .venv
+. .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Download Data
+## Running the Pipeline
 
-Download the dataset from [Kaggle](https://www.kaggle.com/competitions/ts-forecasting/data) and place the files in `data/ts-forecasting/`:
+Run the cleaned pipeline without deep learning:
 
-```
-data/
-└── ts-forecasting/
-    ├── train.parquet   (~740 MB)
-    └── test.parquet    (~139 MB)
+```bash
+.venv/bin/python scripts/run_pipeline.py
 ```
 
-Data files are excluded from git due to size.
+Include the sampled deep-learning study:
 
-## Usage
+```bash
+.venv/bin/python scripts/run_pipeline.py --include-deep-learning
+```
 
-Run the notebooks in order:
+Run stages individually:
 
-1. `01_eda.ipynb` — understand the data, panel structure, stationarity, distributions
-2. `02_classical_models.ipynb` — fit baselines, ETS, ARIMA with residual diagnostics
-3. `03_ml_models.ipynb` — feature engineering, LightGBM/XGBoost, SHAP analysis
-4. `04_deep_learning.ipynb` — train LSTM, N-BEATS, NHITS, TFT
-5. `05_ensemble_hybrid.ipynb` — combine models (parallel, sequential, stacking)
-6. `06_comparison_report.ipynb` — full comparison with statistical significance tests
+```bash
+.venv/bin/python scripts/run_classical_models.py
+.venv/bin/python scripts/run_ml_models.py
+.venv/bin/python scripts/run_deep_learning_sampled.py
+.venv/bin/python scripts/run_ensemble_holdout.py
+.venv/bin/python scripts/build_comparison_report.py
+```
+
+## Outputs
+
+By default, scripts write artifacts under `data/processed/`.
+
+Key files:
+
+- `classical_sample_results.parquet`
+- `classical_sample_summary.parquet`
+- `ml_validation_predictions.parquet`
+- `ml_model_summary.parquet`
+- `deep_learning_sampled_predictions.parquet`
+- `deep_learning_sampled_summary.parquet`
+- `ensemble_holdout_predictions.parquet`
+- `ensemble_holdout_results.parquet`
+- `comparison_report.md`
+
+## Tests
+
+Run the lightweight unit tests:
+
+```bash
+.venv/bin/python -m unittest discover -s tests
+```
+
+## Notes on Notebooks
+
+The notebooks remain useful for:
+
+- EDA visuals
+- qualitative inspection of forecasts
+- course-report plots
+
+They are not the authoritative source for saved result artifacts anymore. The scripts are.
 
 ## Course
 

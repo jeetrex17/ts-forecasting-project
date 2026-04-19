@@ -4,6 +4,9 @@ __pycache__/
 .DS_Store
 *.egg-info/
 .env
+.venv/
+.pytest_cache/
+lightning_logs/
 
 # Dataset too large for git (740MB+)
 data/
