@@ -763,35 +763,46 @@ def build_notebook() -> nbf.NotebookNode:
         ),
         code(
             """
-            fig, axes = plt.subplots(2, 2, figsize=(18, 11), constrained_layout=True)
-            axes = axes.ravel()
+            def plot_filename(reason: str) -> str:
+                return f"quantile_{reason.lower().replace(' ', '_')}_plot.png"
 
-            for ax, reason in zip(axes, REASON_ORDER):
+
+            def draw_series_panel(
+                ax,
+                reason: str,
+                *,
+                title_size: float,
+                stats_font: float,
+                legend_font: float,
+                tick_font: float,
+                line_width: float,
+            ) -> None:
                 summary_row = summary_df.loc[summary_df["Series"] == reason].iloc[0]
                 pred_group = prediction_df.loc[prediction_df["Series"] == reason].sort_values(TIME_COL).reset_index(drop=True)
                 history_frame = prepared_series[reason]
                 history_frame = history_frame.loc[history_frame[TIME_COL] < pred_group[TIME_COL].min()].copy()
 
+                ax.set_facecolor("white")
                 ax.plot(
                     history_frame[TIME_COL],
                     history_frame[TARGET_COL],
                     label="History",
                     color="tab:blue",
-                    linewidth=1.8,
+                    linewidth=line_width,
                 )
                 ax.plot(
                     pred_group[TIME_COL],
                     pred_group[TARGET_COL],
                     label="Validation actual",
                     color="tab:orange",
-                    linewidth=1.8,
+                    linewidth=line_width,
                 )
                 ax.plot(
                     pred_group[TIME_COL],
                     pred_group["pred_median"],
                     label="Selected median",
                     color="tab:green",
-                    linewidth=1.8,
+                    linewidth=line_width,
                 )
                 ax.fill_between(
                     pred_group[TIME_COL],
@@ -801,8 +812,8 @@ def build_notebook() -> nbf.NotebookNode:
                     color="tab:blue",
                     label="Selected interval",
                 )
-                ax.axvline(pred_group[TIME_COL].min(), color="black", linestyle="--", linewidth=1.0)
-                ax.set_title(reason)
+                ax.axvline(pred_group[TIME_COL].min(), color="black", linestyle="--", linewidth=1.1)
+                ax.set_title(reason, fontsize=title_size, pad=8)
                 stats_text = (
                     f"wPICP={summary_row['wPICP_80']:.3f} | PICP={summary_row['PICP_80']:.3f}\\n"
                     f"wMPIW={summary_row['wMPIW_80']:.4g} | MPIW={summary_row['MPIW_80']:.4g}\\n"
@@ -816,7 +827,7 @@ def build_notebook() -> nbf.NotebookNode:
                     transform=ax.transAxes,
                     va="top",
                     ha="left",
-                    fontsize=8.8,
+                    fontsize=stats_font,
                     bbox={
                         "boxstyle": "round,pad=0.3",
                         "facecolor": "white",
@@ -824,9 +835,41 @@ def build_notebook() -> nbf.NotebookNode:
                         "alpha": 0.90,
                     },
                 )
-                ax.set_xlabel(TIME_COL)
+                ax.set_xlabel(TIME_COL, fontsize=tick_font)
+                ax.tick_params(axis="both", labelsize=tick_font)
                 ax.grid(True, alpha=0.25)
-                ax.legend(fontsize=8.5, loc="upper right")
+                ax.legend(fontsize=legend_font, loc="upper right", frameon=False)
+
+
+            for reason in REASON_ORDER:
+                single_fig, single_ax = plt.subplots(figsize=(10.8, 5.1), constrained_layout=True)
+                draw_series_panel(
+                    single_ax,
+                    reason,
+                    title_size=15.0,
+                    stats_font=10.2,
+                    legend_font=10.0,
+                    tick_font=10.5,
+                    line_width=2.2,
+                )
+                single_path = OUTPUT_DIR / plot_filename(reason)
+                single_fig.savefig(single_path, dpi=220, bbox_inches="tight")
+                plt.close(single_fig)
+                print("Saved:", single_path)
+
+            fig, axes = plt.subplots(2, 2, figsize=(18, 11), constrained_layout=True)
+            axes = axes.ravel()
+
+            for ax, reason in zip(axes, REASON_ORDER):
+                draw_series_panel(
+                    ax,
+                    reason,
+                    title_size=12.5,
+                    stats_font=8.8,
+                    legend_font=8.5,
+                    tick_font=8.8,
+                    line_width=1.8,
+                )
 
             plot_path = OUTPUT_DIR / "quantile_chosen_series_grid.png"
             fig.savefig(plot_path, dpi=180, bbox_inches="tight")
@@ -918,6 +961,10 @@ def verify_outputs() -> None:
         "methods": OUTPUT_DIR / "quantile_method_summary.csv",
         "audit": OUTPUT_DIR / "quantile_test_audit.csv",
         "plot": OUTPUT_DIR / "quantile_chosen_series_grid.png",
+        "plot_longest_history": OUTPUT_DIR / "quantile_longest_history_plot.png",
+        "plot_highest_total_weight": OUTPUT_DIR / "quantile_highest_total_weight_plot.png",
+        "plot_most_volatile": OUTPUT_DIR / "quantile_most_volatile_plot.png",
+        "plot_most_stable": OUTPUT_DIR / "quantile_most_stable_plot.png",
     }
     for label, path in required_paths.items():
         if not path.exists():
