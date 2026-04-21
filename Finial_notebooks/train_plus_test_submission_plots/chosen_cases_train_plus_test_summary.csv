@@ -1,0 +1,5 @@
+name,exact_train_id,train_points,train_min_ts,train_max_ts,test_signature_sub_category,test_signature_horizon,matching_test_series,test_points,test_min_ts,test_max_ts
+Longest History,X9BZ68VQ__OYJGNSQK__DPPUO5X2__1,212,2826,3037,DPPUO5X2,1,556,775,3602,4376
+Highest Total Weight,SJZP0OVU__OYJGNSQK__NQ58FVQM__25,156,2874,3032,NQ58FVQM,25,544,775,3602,4376
+Most Volatile,W4S29LF4__KL66VIS3__PHHHVYZI__25,162,2747,2911,PHHHVYZI,25,544,775,3602,4376
+Most Stable,SJZP0OVU__OYJGNSQK__NQ58FVQM__1,170,2874,3052,NQ58FVQM,1,556,775,3602,4376
