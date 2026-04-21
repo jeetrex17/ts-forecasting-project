@@ -239,7 +239,7 @@
 \begin{frame}[t]{Timeline, Split, And Metric}
   \sectiontag{Overview}
   \takeaway{Chronology is preserved twice: once at the global train-versus-test boundary, and again inside each eligible series through an 80/20 chronological train-validation split.}
-  \vspace{0.18em}
+  \vspace{0.12em}
 
   \begin{whitecard}
     {\bfseries Timeline view of the forecasting problem}\par
@@ -266,36 +266,33 @@
     \column{0.48\textwidth}
     \begin{softcard}
       {\bfseries Why the split matters}\par
-      \vspace{0.16em}
-      \small
+      \vspace{0.12em}
+      \footnotesize
       \softbullet{Random folds would leak future information into earlier states.}
       \softbullet{The held-out test is a later time suffix, so training must respect order.}
-      \softbullet{The 80/20 per-series split gives later notebooks one unified validation rule.}
+      \softbullet{Later notebooks reuse one unified 80/20 per-series validation rule.}
     \end{softcard}
 
     \column{0.48\textwidth}
     \begin{whitecard}
       {\bfseries Weighted skill score}\par
-      \vspace{0.06em}
-      {\small
-      \[
-        \mathrm{score} =
-        \sqrt{
-          1 -
-          \mathrm{clip}_{0,1}
-          \left(
-            \frac{\sum_i w_i (y_i - \hat{y}_i)^2}{\sum_i w_i y_i^2}
-          \right)
-        }
-      \]}
+      \vspace{0.1em}
+      \begin{center}
+        \resizebox{0.92\linewidth}{!}{$
+          \mathrm{score} =
+          \sqrt{
+            1 -
+            \mathrm{clip}_{0,1}
+            \left(
+              \frac{\sum_i w_i (y_i - \hat{y}_i)^2}{\sum_i w_i y_i^2}
+            \right)
+          }
+        $}
+      \end{center}
       \footnotesize
-      A higher score is better. The weights \inlinecode{w\_i} mean that some rows contribute far more to the final ranking than others.
-      \divider
-      \begin{columns}[T,onlytextwidth]
-        \column{0.31\textwidth}\smallstat{Top 1\%}{64.2\%}
-        \column{0.31\textwidth}\smallstat{Top 5\%}{92.6\%}
-        \column{0.31\textwidth}\smallstat{Top 10\%}{98.3\%}
-      \end{columns}
+      A higher score is better. The weights \inlinecode{w\_i} mean that some rows contribute far more to the final score than others.
+      \vspace{0.22em}
+      {\scriptsize\textbf{Top 1\%}: 64.2\% \hfill \textbf{Top 5\%}: 92.6\% \hfill \textbf{Top 10\%}: 98.3\%}
     \end{whitecard}
   \end{columns}
 \end{frame}

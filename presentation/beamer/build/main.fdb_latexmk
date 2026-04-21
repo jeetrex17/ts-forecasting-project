@@ -1,10 +1,10 @@
 # Fdb version 4
-["xdvipdfmx"] 1776803197.09366 "build/main.xdv" "build/main.pdf" "build/main" 1776803197.60785 0
-  "build/main.xdv" 1776803197.03419 243188 090ad617161d89b4fe5e8d40f328efa5 "xelatex"
+["xdvipdfmx"] 1776803614.07508 "build/main.xdv" "build/main.pdf" "build/main" 1776803614.61253 0
+  "build/main.xdv" 1776803614.01257 239432 5ae385c90beae1b9e6f425d81a1463eb "xelatex"
   (generated)
   "build/main.pdf"
   (rewritten before read)
-["xelatex"] 1776803195.94617 "main.tex" "build/main.xdv" "main" 1776803197.60606 0
+["xelatex"] 1776803612.79128 "main.tex" "build/main.xdv" "main" 1776803614.61061 0
   "/Users/jeetraj/Library/TinyTeX/texmf-dist/fonts/tfm/adobe/zapfding/pzdr.tfm" 1136768653 1528 f853c4d1b4e0550255e02831fdc8496f ""
   "/Users/jeetraj/Library/TinyTeX/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm" 1246382020 1004 54797486969f23fa377b128694d548df ""
   "/Users/jeetraj/Library/TinyTeX/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex8.tfm" 1246382020 988 bdf658c3bfc2d96d3c8b02cfc1c94c20 ""
@@ -252,17 +252,17 @@
   "/Users/jeetraj/Library/TinyTeX/texmf-dist/web2c/texmf.cnf" 1770478701 43630 e9fa012910491fe5ae08a72c3c2997a7 ""
   "/Users/jeetraj/Library/TinyTeX/texmf-var/web2c/xetex/xelatex.fmt" 1776080843 4479806 925ce578c2cfc18bdc56445c26c49025 ""
   "/Users/jeetraj/Library/TinyTeX/texmf.cnf" 1776053707 637 edd806fb06a89761a6034e1968af9017 ""
-  "build/main.aux" 1776803197.03348 2543 9458037e357cf7889023690a6b2e71ac "xelatex"
-  "build/main.nav" 1776803197.03412 1388 37fb167c90003b6656a249083ce3750a "xelatex"
-  "build/main.out" 1776803196.58671 0 d41d8cd98f00b204e9800998ecf8427e "xelatex"
+  "build/main.aux" 1776803614.01165 2543 9458037e357cf7889023690a6b2e71ac "xelatex"
+  "build/main.nav" 1776803614.01251 1388 37fb167c90003b6656a249083ce3750a "xelatex"
+  "build/main.out" 1776803613.53108 0 d41d8cd98f00b204e9800998ecf8427e "xelatex"
   "figures/codex/01_missing_values_chart.png" 1776802452.82914 76171 97077c099867d2af135fbcfaf05509c2 ""
   "figures/codex/01_panel_lags.png" 1776800305.81263 35171 3d999b9eb9d0edfc6bd53ac578d2d811 ""
   "figures/codex/01_representative_series.png" 1776800305.45523 232129 3b2811ab7e019342c39f91f87605be17 ""
   "figures/codex/01_stationarity.png" 1776800305.66055 49873 6782ccff1bf252cfd915c4a8731238a3 ""
   "figures/codex/01_target_distribution_center.png" 1776802453.9432 51652 0e301a9927d0a45920055f9f18eaaf7a ""
   "main.tex" 1776802459.88852 704 884c17ebeea836469d878310bfea574e ""
-  "sections/01_frontmatter.tex" 1776803109.59736 11674 6994bb50272b307be8277d4ef44ff169 ""
-  "sections/02_eda.tex" 1776803187.19352 9531 fa1967346579a3dcb7f0ab2ed30d9cd5 ""
+  "sections/01_frontmatter.tex" 1776803584.33597 11621 19b384e5816d157c9a3046b94770bf15 ""
+  "sections/02_eda.tex" 1776803601.16349 9375 85cdb968caf0263136e976367e02ed6c ""
   "theme/minimaldeck.sty" 1776802787.77478 5247 f1d7c84247a0e3100ed4471f91549e64 ""
   (generated)
   "build/main.aux"

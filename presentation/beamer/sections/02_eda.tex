@@ -116,15 +116,14 @@
 
     \column{0.38\textwidth}
     \begin{softcard}
-      {\bfseries How to read ADF and KPSS}\par
-      \vspace{0.18em}
-      \small
-      \softbullet{\textbf{ADF} asks whether a unit-root style non-stationary pattern is present.}
-      \softbullet{\textbf{KPSS} asks whether a stationary level assumption is reasonable.}
-      \softbullet{Using both tests prevents us from over-claiming stationarity from one test alone.}
-      \divider
+      {\bfseries Reading ADF and KPSS}\par
+      \vspace{0.14em}
       \footnotesize
-      Later classical models should be allowed to use first differencing, especially on unstable series, because the notebook evidence says that transformation materially stabilizes the target.
+      \softbullet{\textbf{ADF} tests for unit-root style non-stationarity.}
+      \softbullet{\textbf{KPSS} tests whether a stable level is plausible.}
+      \softbullet{Using both together avoids one-test overconfidence.}
+      \vspace{0.18em}
+      \muted{\textbf{Modeling implication.}} Keep first differencing available later because the target is materially more stable after it.
     \end{softcard}
   \end{columns}
 \end{frame}
@@ -144,15 +143,14 @@
 
     \column{0.36\textwidth}
     \begin{softcard}
-      {\bfseries What this means}\par
-      \vspace{0.18em}
-      \small
-      \softbullet{ACF captures persistence carried from recent history.}
-      \softbullet{PACF isolates each lag's direct contribution after shorter lags are accounted for.}
-      \softbullet{Both curves decay quickly, so short-memory structure is the main signal.}
-      \divider
+      {\bfseries Interpretation}\par
+      \vspace{0.14em}
       \footnotesize
-      Low-order AR, ARMA, differenced ARIMA, and short target-history windows are all supported by this lag picture.
+      \softbullet{ACF shows overall persistence from recent history.}
+      \softbullet{PACF isolates each lag's direct contribution.}
+      \softbullet{Both decay quickly, so the panel is mostly short-memory.}
+      \vspace{0.18em}
+      \muted{\textbf{Modeling implication.}} Low-order AR, ARMA, differenced ARIMA, and short target-history windows are consistent with this lag pattern.
     \end{softcard}
   \end{columns}
 \end{frame}

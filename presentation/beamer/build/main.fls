@@ -449,6 +449,8 @@ INPUT /Users/jeetraj/Library/TinyTeX/texmf-dist/fonts/tfm/public/cm/cmr6.tfm
 INPUT /Users/jeetraj/Library/TinyTeX/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm
 INPUT /Users/jeetraj/Library/TinyTeX/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam7.tfm
 INPUT /Users/jeetraj/Library/TinyTeX/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm7.tfm
+INPUT /Users/jeetraj/Library/TinyTeX/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam10.tfm
+INPUT /Users/jeetraj/Library/TinyTeX/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm10.tfm
 INPUT ./sections/02_eda.tex
 INPUT ./sections/02_eda.tex
 INPUT ./sections/02_eda.tex

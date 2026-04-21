@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999998 (TeX Live 2026) (preloaded format=xelatex 2026.4.13)  22 APR 2026 01:56
+This is XeTeX, Version 3.141592653-2.6-0.999998 (TeX Live 2026) (preloaded format=xelatex 2026.4.13)  22 APR 2026 02:03
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1021,10 +1021,10 @@ Overfull \vbox (31.7988pt too high) detected at line 237
 ]
 
 LaTeX Font Warning: Font shape `TU/lmmono10-regular.otf(0)/b/n' undefined
-(Font)              using `TU/lmmono10-regular.otf(0)/m/n' instead on input line 301.
+(Font)              using `TU/lmmono10-regular.otf(0)/m/n' instead on input line 298.
 
 
-Overfull \vbox (72.52023pt too high) detected at line 301
+Overfull \vbox (35.99756pt too high) detected at line 298
  []
 
 [6
@@ -1088,85 +1088,57 @@ Overfull \vbox (11.35823pt too high) detected at line 102
 ]
 File: figures/codex/01_stationarity.png Graphic file (type bmp)
 <figures/codex/01_stationarity.png>
-
-Underfull \hbox (badness 2626) in paragraph at lines 130--130
-[]\TU/lmsans10-regular.otf(0)/b/n/10 How to read ADF and
- []
-
-
-Underfull \hbox (badness 1867) in paragraph at lines 130--130
-\TU/lmsans10-regular.otf(0)/m/n/9 style non-stationary pattern is
- []
-
-
-Underfull \hbox (badness 2573) in paragraph at lines 130--130
-\TU/lmsans10-regular.otf(0)/m/n/9 from over-claiming stationarity
- []
-
-
-Overfull \vbox (65.22195pt too high) detected at line 130
- []
-
-[10
+ [10
 
 ]
 File: figures/codex/01_panel_lags.png Graphic file (type bmp)
 <figures/codex/01_panel_lags.png>
-
-Underfull \hbox (badness 7796) in paragraph at lines 158--158
-[]$\OMS/cmsy/m/n/9 ^^O$[] \TU/lmsans10-regular.otf(0)/m/n/9 ACF captures persistence
- []
-
-
-Overfull \vbox (22.71796pt too high) detected at line 158
- []
-
-[11
+ [11
 
 ]
-Underfull \hbox (badness 2744) in paragraph at lines 199--199
+Underfull \hbox (badness 2744) in paragraph at lines 197--197
 []$\OMS/cmsy/m/n/9 ^^O$[] \TU/lmmono10-regular.otf(0)/m/n/8 pandas\TU/lmsans10-regular.otf(0)/m/n/8 : grouped sum-
  []
 
 
-Underfull \hbox (badness 1546) in paragraph at lines 199--199
+Underfull \hbox (badness 1546) in paragraph at lines 197--197
 []$\OMS/cmsy/m/n/9 ^^O$[] \TU/lmmono10-regular.otf(0)/m/n/8 pyarrow\TU/lmsans10-regular.otf(0)/m/n/8 : large parquet
  []
 
 
-Underfull \hbox (badness 2334) in paragraph at lines 199--199
+Underfull \hbox (badness 2334) in paragraph at lines 197--197
 []$\OMS/cmsy/m/n/9 ^^O$[] \TU/lmmono10-regular.otf(0)/m/n/8 pathlib\TU/lmsans10-regular.otf(0)/m/n/8 , \TU/lmmono10-regular.otf(0)/m/n/8 json\TU/lmsans10-regular.otf(0)/m/n/8 : repro-
  []
 
 
-Underfull \hbox (badness 1694) in paragraph at lines 199--199
+Underfull \hbox (badness 1694) in paragraph at lines 197--197
 []\TU/lmsans10-regular.otf(0)/m/n/8 The deck reuses only the
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 199--199
+Underfull \hbox (badness 10000) in paragraph at lines 197--197
 []$\OMS/cmsy/m/n/9 ^^O$[] \TU/lmmono10-regular.otf(0)/m/n/8 statsmodels\TU/lmsans10-regular.otf(0)/m/n/8 : ADF,
  []
 
 
-Underfull \hbox (badness 5302) in paragraph at lines 199--199
+Underfull \hbox (badness 5302) in paragraph at lines 197--197
 []\TU/lmsans10-regular.otf(0)/m/n/8 Later modeling notebooks
  []
 
 
-Underfull \hbox (badness 1622) in paragraph at lines 199--199
+Underfull \hbox (badness 1622) in paragraph at lines 197--197
 \TU/lmsans10-regular.otf(0)/m/n/8 additionally use forecasting
  []
 
 [12
 
 ]
-Underfull \hbox (badness 1137) in paragraph at lines 237--237
+Underfull \hbox (badness 1137) in paragraph at lines 235--235
 []$\OMS/cmsy/m/n/9 ^^O$[] \TU/lmsans10-regular.otf(0)/m/n/8 Missingness is selective rather than catas-
  []
 
 
-Overfull \vbox (5.02191pt too high) detected at line 237
+Overfull \vbox (5.02191pt too high) detected at line 235
  []
 
 [13
@@ -1194,12 +1166,12 @@ Package rerunfilecheck Info: File `main.out' has not changed.
 (rerunfilecheck)             Checksum: D41D8CD98F00B204E9800998ECF8427E;0.
  ) 
 Here is how much of TeX's memory you used:
- 40033 strings out of 469972
- 1003388 string characters out of 5473259
+ 40029 strings out of 469972
+ 1003218 string characters out of 5473259
  1541529 words of memory out of 5000000
- 68083 multiletter control sequences out of 15000+600000
- 634329 words of font info for 104 fonts, out of 8000000 for 9000
+ 68079 multiletter control sequences out of 15000+600000
+ 634737 words of font info for 106 fonts, out of 8000000 for 9000
  36 hyphenation exceptions out of 8191
  105i,16n,112p,725b,1311s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on build/main.xdv (13 pages, 243188 bytes).
+Output written on build/main.xdv (13 pages, 239432 bytes).

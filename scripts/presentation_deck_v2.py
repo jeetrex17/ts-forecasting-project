@@ -2306,30 +2306,36 @@ def draw_deep_slides(builder: DeckBuilder, assets: dict[str, Path]) -> None:
     fig = builder.new_slide(
         "Deep Setup and Libraries",
         "Deep",
-        "The deep study is intentionally modest: CPU-only PyTorch, target-only windows, adaptive chronological splits, and explicit environment checks.",
+        "The workflow stays compact: pandas and NumPy handle panel wrangling, statsmodels handles diagnostics and classical baselines, and PyTorch handles the sequence models.",
     )
     content = builder._content_rect
     assert content is not None
     left, right = content.split_cols([0.42, 0.58])
-    builder.text_box(
+    builder.bullet_box(
         fig,
         left,
-        title="Environment check",
-        body="Python: 3.14.3\npandas: 3.0.2\npyarrow: 23.0.1\nnumpy: 2.4.4\nmatplotlib: 3.10.8\nsklearn: 1.8.0\ntorch: 2.11.0",
-        body_wrap=False,
-        body_size=10.8,
+        title="Core libraries used",
+        bullets=[
+            "pandas + pyarrow: read parquet data, keep only needed columns, sort series, and assemble summary tables.",
+            "numpy: array operations, lag windows, seed control, and metric calculations.",
+            "matplotlib + seaborn: EDA visuals, benchmark charts, forecast panels, and training curves.",
+            "statsmodels: ADF/KPSS/STL/ACF-PACF diagnostics plus SES, Holt, and ARIMA baselines.",
+            "torch: nn modules, TensorDataset/DataLoader pipelines, and CPU training for RNN, GRU, and LSTM models.",
+        ],
+        body_size=9.7,
     )
-    upper, lower = right.split_rows([0.62, 0.38])
+    upper, lower = right.split_rows([0.60, 0.40])
     builder.fit_table(fig, upper, DEEP_SPLIT_DF, title="Adaptive splits for chosen series", max_font=8.8, min_font=7.8)
     builder.bullet_box(
         fig,
         lower,
-        title="Stack summary",
+        title="Where they show up",
         bullets=[
-            "Only the columns required for target-only sequence modeling are loaded from parquet.",
-            "The training stack stays small and reproducible on CPU.",
+            "01_EDA.ipynb: schema checks, missingness, stationarity, STL, lag structure, and split sanity.",
+            "02_classical_codex.ipynb: representative-series baselines with SES, Holt, and ARIMA variants.",
+            "03_deep_sequence_models_chosen.ipynb: adaptive 80/20 splits, target-only windows, and recurrent training.",
         ],
-        body_size=9.8,
+        body_size=9.5,
     )
     builder.save(fig)
 
