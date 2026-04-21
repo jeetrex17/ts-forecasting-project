@@ -51,30 +51,14 @@ def build_slide(slide_pdf: Path) -> None:
         fig = builder.new_slide(
             "Quantile Regression Forecasts",
             "Classical",
-            "The rolling backtest now uses the stitched quantile grid directly: LightGBM provides the raw quantile curves, then the selected interval recipe balances coverage and width differently for each representative series.",
+            "LightGBM quantile setup: q02-q98, 400 trees, lr=0.04, depth=5, 31 leaves, min child=10, subsample=0.85, colsample=0.85, seed=42; rolling folds 70/20/20.",
         )
 
-        template = builder.template_full_width_figure(figure_fraction=0.64)
+        content_rect = builder._content_rect
+        if content_rect is None:
+            raise RuntimeError("No active content rect for quantile slide")
         asset = deck.AssetSpec(key="quantile_grid", path=QUANTILE_GRID, kind="multi_panel_chart", fit_mode="contain")
-        builder.image_box(fig, asset, template.slots["figure"])
-
-        params_rect, series_rect = template.slots["note"].split_cols([0.60, 0.40])
-        builder.bullet_box(
-            fig,
-            params_rect,
-            title="LightGBM Quantile Setup",
-            bullets=LGBM_PARAM_BULLETS,
-            body_size=7.8,
-            body_min_size=7.3,
-        )
-        builder.bullet_box(
-            fig,
-            series_rect,
-            title="Selected Interval Recipe",
-            bullets=selected_recipe_bullets(summary),
-            body_size=7.7,
-            body_min_size=7.2,
-        )
+        builder.image_box(fig, asset, content_rect)
 
         builder.save(fig)
 
