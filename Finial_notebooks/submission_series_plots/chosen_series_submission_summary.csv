@@ -1,5 +1,0 @@
-name,matched_series,points,min_ts_index,max_ts_index,median_prediction_mean
-Longest History,556,775,3602,4376,-0.002767189050339715
-Highest Total Weight,544,775,3602,4376,-0.07545702318077359
-Most Stable,556,775,3602,4376,-0.002071853660957018
-Most Volatile,544,775,3602,4376,-0.30007867556466844
