@@ -1,0 +1,301 @@
+\begin{frame}[plain]
+  \sectiontag{Applied Forecasting Methods}
+  \vspace{0.2em}
+  {\fontsize{24}{28}\selectfont\bfseries Weighted Panel Forecasting on the Kaggle Hedge Fund Dataset\par}
+  \vspace{0.2em}
+  {\large\color{DeckMuted}Introduction and exploratory data analysis\par}
+  \vspace{0.55em}
+
+  \begin{columns}[T,onlytextwidth]
+    \column{0.58\textwidth}
+    \begin{softcard}
+      {\bfseries What this PDF covers}\par
+      \vspace{0.3em}
+      This section introduces the forecasting task, explains the panel structure and evaluation logic, and uses EDA to justify what kinds of models are defensible later.
+      \divider
+      {\small
+      \textbf{Scope.} Only the introduction and EDA story is included here. Classical and deep model results are intentionally left for the next section of the project.}
+    \end{softcard}
+
+    \column{0.38\textwidth}
+    \begin{whitecard}
+      \footnotesize
+      {\bfseries Team}\par
+      \TeamNames
+
+      \vspace{0.35em}
+      {\bfseries Roll Numbers}\par
+      \RollNumbers
+
+      \vspace{0.35em}
+      {\bfseries Course}\par
+      \CourseName
+
+      \vspace{0.35em}
+      {\bfseries Faculty}\par
+      \FacultyName
+
+      \vspace{0.35em}
+      {\bfseries Institute}\par
+      \InstituteName
+
+      \vspace{0.35em}
+      {\bfseries Date}\par
+      \DeckDate
+    \end{whitecard}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{Roadmap}
+  \sectiontag{Overview}
+  \takeaway{The flow is simple: define the problem, define one series correctly, explain the split and metric, then use EDA to narrow the later modeling space.}
+  \vspace{0.35em}
+
+  \begin{center}
+    \begin{tikzpicture}[x=1cm,y=1cm]
+      \foreach \x/\n/\label in {
+        0/1/Problem,
+        2.45/2/Series Key,
+        4.9/3/Data Scope,
+        7.35/4/Split + Metric,
+        9.8/5/EDA Findings,
+        12.25/6/Implications
+      }{
+        \fill[DeckAccent] (\x,0) circle (0.24);
+        \node[text=white,font=\bfseries\small] at (\x,0) {\n};
+        \node[align=center,font=\bfseries\scriptsize,text=DeckInk] at (\x,-0.78) {\label};
+      }
+      \foreach \x/\nx in {0.38/2.05,2.83/4.5,5.28/6.95,7.73/9.4,10.18/11.85}{
+        \draw[-{Latex[length=2.8mm]},line width=0.9pt,color=DeckAccent] (\x,0) -- (\nx,0);
+      }
+    \end{tikzpicture}
+  \end{center}
+
+  \vspace{0.45em}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.48\textwidth}
+    \begin{softcard}
+      {\bfseries Focus of this PDF}\par
+      \vspace{0.25em}
+      \small
+      \softbullet{Why the task is a weighted panel problem instead of one ordinary time series.}
+      \softbullet{Why chronology, horizon, and series identity all matter at the same time.}
+      \softbullet{Which EDA findings directly change later modeling decisions.}
+    \end{softcard}
+
+    \column{0.48\textwidth}
+    \begin{warmcard}
+      {\bfseries Not covered yet}\par
+      \vspace{0.25em}
+      \small
+      \softbullet{No classical forecast comparison in this PDF.}
+      \softbullet{No deep-learning result comparison in this PDF.}
+      \softbullet{This closes exactly at the handoff from EDA into modeling.}
+    \end{warmcard}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{Problem Statement}
+  \sectiontag{Overview}
+  \takeaway{This is a weighted panel forecasting problem: many related series evolve over time, and their forecast errors do not contribute equally to the final score.}
+  \vspace{0.35em}
+
+  \begin{columns}[T,onlytextwidth]
+    \column{0.48\textwidth}
+    \begin{whitecard}
+      {\bfseries Task definition}\par
+      \vspace{0.25em}
+      \small
+      \begin{itemize}
+        \item predict \inlinecode{y\_target} at future \inlinecode{ts\_index} values
+        \item do this for many anonymized series, not just one
+        \item each row carries a competition \inlinecode{weight}
+        \item forecasts are evaluated on later timestamps, not shuffled rows
+      \end{itemize}
+    \end{whitecard}
+
+    \column{0.48\textwidth}
+    \begin{softcard}
+      {\bfseries Why this is harder than one series}\par
+      \vspace{0.25em}
+      \small
+      \begin{itemize}
+        \item different series have different lengths, volatility, and scale
+        \item the target is heavy-tailed, so rare moves matter
+        \item weights are extremely concentrated, so some errors dominate
+        \item horizons \inlinecode{1, 3, 10, 25} define different forecasting regimes
+      \end{itemize}
+    \end{softcard}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{How One Series Is Defined}
+  \sectiontag{Overview}
+  \takeaway{One exact series is identified by \inlinecode{code + sub\_code + sub\_category + horizon}. \inlinecode{ts\_index} then orders the observations inside that series.}
+  \vspace{0.22em}
+
+  \begin{columns}[T,onlytextwidth]
+    \column{0.57\textwidth}
+    \begin{whitecard}
+      {\bfseries Series-key schema}\par
+      \vspace{0.22em}
+      \begin{center}
+        \begin{tikzpicture}[
+          node distance=0.28cm,
+          keybox/.style={draw=DeckBorder, rounded corners=3pt, fill=DeckSoft, minimum width=1.95cm, minimum height=0.78cm, font=\footnotesize\bfseries, align=center},
+          flow/.style={-{Latex[length=2.4mm]}, line width=0.9pt, color=DeckAccent}
+        ]
+          \node[keybox] (code) {code};
+          \node[keybox, right=of code] (subcode) {sub\_code};
+          \node[keybox, right=of subcode] (subcat) {sub\_category};
+          \node[keybox, right=of subcat] (horizon) {horizon};
+          \node[draw=DeckAccent!25, rounded corners=3pt, fill=DeckWhite, minimum width=4.45cm, minimum height=0.82cm, below=0.6cm of subcode.east, anchor=north west, font=\small\bfseries, align=center] (series) {One unique series};
+          \draw[flow] (code.south) -- ++(0,-0.35) -| (series.north west);
+          \draw[flow] (subcode.south) -- ++(0,-0.25) -- (series.north);
+          \draw[flow] (subcat.south) -- ++(0,-0.35) -| (series.north east);
+          \draw[flow] (horizon.south) -- ++(0,-0.25) -| ([xshift=1.55cm]series.north east);
+
+          \node[draw=DeckBorder, rounded corners=3pt, fill=DeckWhite, minimum width=5.5cm, minimum height=0.92cm, below=0.8cm of series, font=\scriptsize, align=center] (rows) {\textbf{Inside that series:} ordered by \inlinecode{ts\_index}\\each row stores \inlinecode{y\_target}, \inlinecode{weight}, and \inlinecode{feature\_*}};
+          \draw[flow] (series.south) -- (rows.north);
+        \end{tikzpicture}
+      \end{center}
+    \end{whitecard}
+
+    \column{0.39\textwidth}
+    \begin{softcard}
+      {\bfseries What each field means}\par
+      \vspace{0.16em}
+      \scriptsize
+      \textbf{Example key}\par
+      \inlinecode{SJZP0OVU / OYJGNSQK / NQ58FVQM / H25}
+      \vspace{0.2em}
+      \begin{tabularx}{\linewidth}{L{0.35\linewidth}Y}
+        \toprule
+        \textbf{Field} & \textbf{Meaning} \\
+        \midrule
+        \inlinecode{code} & primary identifier \\
+        \inlinecode{sub\_code} & secondary identifier \\
+        \inlinecode{sub\_category} & categorical grouping \\
+        \inlinecode{horizon} & forecast horizon \\
+        \inlinecode{ts\_index} & time order within a series \\
+        \inlinecode{y\_target} & continuous target value \\
+        \inlinecode{weight} & row importance in scoring \\
+        \bottomrule
+      \end{tabularx}
+    \end{softcard}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{Dataset Scope And Length Rules}
+  \sectiontag{Overview}
+  \takeaway{The panel is large, heterogeneous, and uneven in series history, so later modeling has to be constrained by explicit length rules rather than applied blindly to every series.}
+  \vspace{0.22em}
+
+  \begin{columns}[T,onlytextwidth]
+    \column{0.24\textwidth}\statcard{Train rows}{5.34M}
+    \column{0.24\textwidth}\statcard{Test rows}{1.45M}
+    \column{0.24\textwidth}\statcard{Features}{86}
+    \column{0.24\textwidth}\statcard{Total series}{36,923}
+  \end{columns}
+
+  \vspace{0.22em}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.48\textwidth}
+    \begin{whitecard}
+      {\bfseries Panel coverage}\par
+      \vspace{0.18em}
+      \small
+      \begin{tabularx}{\linewidth}{L{0.47\linewidth}Y}
+        \toprule
+        \textbf{Measure} & \textbf{Value} \\
+        \midrule
+        Codes & 23 \\
+        Train sub-codes & 180 \\
+        Test sub-codes & 47 \\
+        Sub-categories & 5 \\
+        Horizons & 1, 3, 10, 25 \\
+        Train timeline & \inlinecode{1..3601} \\
+        Test timeline & \inlinecode{3602..4376} \\
+        \bottomrule
+      \end{tabularx}
+    \end{whitecard}
+
+    \column{0.48\textwidth}
+    \begin{softcard}
+      {\bfseries Length and split rules used later}\par
+      \vspace{0.18em}
+      \small
+      \softbullet{\textbf{Length} = number of train timestamps available for one exact series.}
+      \softbullet{\textbf{Minimum series length} = 120 points.}
+      \softbullet{\textbf{Minimum train length} = 96 points.}
+      \softbullet{\textbf{Minimum validation length} = 24 points.}
+      \softbullet{\textbf{Lookback} = 24 recent target values.}
+      \divider
+      \footnotesize These thresholds stop very short series from creating misleading later comparisons.
+    \end{softcard}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{Timeline, Split, And Metric}
+  \sectiontag{Overview}
+  \takeaway{Chronology is preserved twice: once at the global train-versus-test boundary, and again inside each eligible series through an 80/20 chronological train-validation split.}
+  \vspace{0.18em}
+
+  \begin{whitecard}
+    {\bfseries Timeline view of the forecasting problem}\par
+    \vspace{0.18em}
+    \begin{center}
+      \begin{tikzpicture}[x=1cm,y=1cm]
+        \fill[DeckAccent!20] (0,0) rectangle (8.55,0.78);
+        \fill[DeckAccent!42] (8.55,0) rectangle (11.2,0.78);
+        \draw[DeckBorder] (0,0) rectangle (11.2,0.78);
+        \node[align=center,font=\bfseries\scriptsize] at (4.275,0.39) {Global train partition\\\inlinecode{1..3601}};
+        \node[align=center,font=\bfseries\scriptsize,text=white] at (9.875,0.39) {Held-out test\\\inlinecode{3602..4376}};
+
+        \fill[DeckSoft] (0,-0.88) rectangle (6.7,-0.2);
+        \fill[DeckAccent!26] (6.7,-0.88) rectangle (8.35,-0.2);
+        \draw[DeckBorder] (0,-0.88) rectangle (8.35,-0.2);
+        \node[align=center,font=\bfseries\scriptsize] at (3.35,-0.54) {Per-series chronological train\\80\% of an eligible series};
+        \node[align=center,font=\bfseries\scriptsize] at (7.53,-0.54) {Validation\\20\%};
+      \end{tikzpicture}
+    \end{center}
+  \end{whitecard}
+
+  \vspace{0.22em}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.48\textwidth}
+    \begin{softcard}
+      {\bfseries Why the split matters}\par
+      \vspace{0.16em}
+      \small
+      \softbullet{Random folds would leak future information into earlier states.}
+      \softbullet{The held-out test is a later time suffix, so training must respect order.}
+      \softbullet{The 80/20 per-series split gives later notebooks one unified validation rule.}
+    \end{softcard}
+
+    \column{0.48\textwidth}
+    \begin{whitecard}
+      {\bfseries Weighted skill score}\par
+      \vspace{0.06em}
+      {\small
+      \[
+        \mathrm{score} =
+        \sqrt{
+          1 -
+          \mathrm{clip}_{0,1}
+          \left(
+            \frac{\sum_i w_i (y_i - \hat{y}_i)^2}{\sum_i w_i y_i^2}
+          \right)
+        }
+      \]}
+      \footnotesize
+      A higher score is better. The weights \inlinecode{w\_i} mean that some rows contribute far more to the final ranking than others.
+      \divider
+      \begin{columns}[T,onlytextwidth]
+        \column{0.31\textwidth}\smallstat{Top 1\%}{64.2\%}
+        \column{0.31\textwidth}\smallstat{Top 5\%}{92.6\%}
+        \column{0.31\textwidth}\smallstat{Top 10\%}{98.3\%}
+      \end{columns}
+    \end{whitecard}
+  \end{columns}
+\end{frame}

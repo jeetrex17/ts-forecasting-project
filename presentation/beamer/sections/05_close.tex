@@ -1,0 +1,91 @@
+\begin{frame}[t]{Best Classical vs Best Deep}
+  \sectiontag{Comparison}
+  \takeaway{The final comparison is informative but not apples-to-apples: deep models benefit from adaptive splits, while classical models stay on the harsher fixed-cutoff setup.}
+  \vspace{0.35em}
+
+  \begin{columns}[T,onlytextwidth]
+    \column{0.60\textwidth}
+    \begin{panelbox}
+      \textbf{Best notebook skill by representative series}
+      \begin{center}
+        \begin{tikzpicture}
+          \begin{axis}[
+            ybar,
+            width=0.94\linewidth,
+            height=0.58\textheight,
+            ymin=0,
+            ymax=0.9,
+            ylabel={Weighted skill},
+            symbolic x coords={High wt., Long hist., Stable, Volatile},
+            xtick=data,
+            bar width=12pt,
+            enlarge x limits=0.18,
+            ymajorgrids=true,
+            grid style={draw=DeckBorder},
+            axis line style={draw=DeckBorder},
+            tick style={draw=DeckBorder},
+            xticklabel style={font=\small},
+            yticklabel style={font=\small},
+            legend style={draw=none,fill=none,at={(0.5,1.06)},anchor=south,legend columns=-1,font=\small},
+          ]
+            \addplot[fill=DeckAccent!80,draw=DeckAccent!80] coordinates {
+              (High wt.,0.0000)
+              (Long hist.,0.0000)
+              (Stable,0.0000)
+              (Volatile,0.8412)
+            };
+            \addplot[fill=DeckMuted!55,draw=DeckMuted!55] coordinates {
+              (High wt.,0.5117)
+              (Long hist.,0.0348)
+              (Stable,0.0000)
+              (Volatile,0.8194)
+            };
+            \legend{Best classical, Best deep}
+          \end{axis}
+        \end{tikzpicture}
+      \end{center}
+    \end{panelbox}
+
+    \column{0.36\textwidth}
+    \begin{panelbox}
+      \textbf{What the chart really says}
+      \small
+      \begin{itemize}
+        \item deep helps most on the highest-weight case
+        \item the volatile case stays close to classical ARIMA
+        \item the stable case does not reward extra complexity
+      \end{itemize}
+      \divider
+      \textbf{Caveat}
+      Read this as a four-series notebook comparison under different split rules.
+    \end{panelbox}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{Final Conclusions}
+  \sectiontag{Close}
+  \takeaway{Across the three notebooks, the main lesson is that diagnostics and evaluation design matter as much as model family choice.}
+  \vspace{0.4em}
+
+  \begin{panelbox}
+    \small
+    \begin{enumerate}
+      \item \textbf{Weighting and chronology define the task.} Any fair read must respect the temporal suffix split and the extreme concentration of row weights.
+      \item \textbf{EDA narrows what is defensible.} Cutoff weakness, mixed raw-level stationarity, and short-memory lag structure all constrain the sensible notebook experiments.
+      \item \textbf{Classical models stay credible.} Short histories favor simple smoothers, while the volatile series rewards differenced ARIMA.
+      \item \textbf{Deep models help selectively.} Adaptive-split recurrent models improve some cases, but the split mismatch blocks a universal win claim.
+    \end{enumerate}
+  \end{panelbox}
+  \vspace{0.15em}
+  {\small\color{DeckMuted}\textbf{Closing note.} The notebooks contribute a disciplined path from diagnostics to honest interpretation, not a single universal winner.}
+\end{frame}
+
+\begin{frame}[plain]
+  \vfill
+  \begin{center}
+    {\fontsize{28}{32}\selectfont\bfseries Questions?\par}
+    \vspace{0.5em}
+    {\large\color{DeckMuted}Thank you.}
+  \end{center}
+  \vfill
+\end{frame}

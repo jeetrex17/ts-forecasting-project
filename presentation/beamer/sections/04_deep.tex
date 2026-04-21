@@ -1,0 +1,169 @@
+\begin{frame}[t]{Deep Study: Why Adaptive Splits Were Introduced}
+  \sectiontag{Deep}
+  \takeaway{The deep notebook changes the split rule for a practical reason: the fixed cutoff leaves two representative series with only seven training points, which is not enough for sequence learning.}
+  \vspace{0.35em}
+
+  \begin{columns}[T,onlytextwidth]
+    \column{0.42\textwidth}
+    \begin{panelbox}
+      \textbf{Why the rule changes}
+      \begin{itemize}
+        \item chronology is still preserved
+        \item only the cutoff location changes, not the causal direction
+        \item the notebook uses an 80/20 chronological split on each chosen series
+      \end{itemize}
+      \divider
+      This is a methodological adjustment for feasibility, not a cosmetic tweak.
+    \end{panelbox}
+
+    \column{0.54\textwidth}
+    \begin{panelbox}
+      \textbf{Adaptive split summary from the notebook}
+      \small
+      \begin{tabularx}{\linewidth}{L{0.30\linewidth}R{0.12\linewidth}R{0.12\linewidth}Y Y}
+        \toprule
+        \textbf{Series} & \textbf{Train} & \textbf{Val} & \textbf{Train range} & \textbf{Validation range} \\
+        \midrule
+        Longest history & 169 & 43 & 2826--2994 & 2995--3037 \\
+        Highest total weight & 124 & 32 & 2874--3000 & 3001--3032 \\
+        Most volatile & 129 & 33 & 2747--2878 & 2879--2911 \\
+        Most stable & 136 & 34 & 2874--3012 & 3013--3052 \\
+        \bottomrule
+      \end{tabularx}
+    \end{panelbox}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{Deep Study: Sequence Setup and Evaluation}
+  \sectiontag{Deep}
+  \takeaway{The deep notebook is intentionally modest: target-only windows, CPU PyTorch, a naive baseline, and recursive forecasting over the validation horizon.}
+  \vspace{0.35em}
+
+  \begin{columns}[T,onlytextwidth]
+    \column{0.52\textwidth}
+    \begin{panelbox}
+      \textbf{Windowing logic}
+      \vspace{0.35em}
+      \begin{center}
+        \begin{tikzpicture}[node distance=0.3cm]
+          \node[draw=DeckBorder,fill=DeckSoft,rounded corners=2pt,minimum width=1.2cm,minimum height=0.8cm] (x1) {$y_{t-23}$};
+          \node[draw=DeckBorder,fill=DeckSoft,rounded corners=2pt,minimum width=1.2cm,minimum height=0.8cm,right=0.25cm of x1] (x2) {$y_{t-22}$};
+          \node[right=0.2cm of x2,font=\bfseries] (dots) {$\cdots$};
+          \node[draw=DeckBorder,fill=DeckSoft,rounded corners=2pt,minimum width=1.2cm,minimum height=0.8cm,right=0.2cm of dots] (x3) {$y_t$};
+          \node[draw=DeckAccent,fill=DeckAccent!10,rounded corners=2pt,minimum width=1.8cm,minimum height=0.9cm,right=0.55cm of x3] (model) {RNN / GRU / LSTM};
+          \node[draw=DeckBorder,fill=DeckSoft,rounded corners=2pt,minimum width=1.3cm,minimum height=0.8cm,right=0.55cm of model] (pred) {$\hat{y}_{t+1}$};
+          \draw[-{Latex[length=2.2mm]},DeckAccent] (x3) -- (model);
+          \draw[-{Latex[length=2.2mm]},DeckAccent] (model) -- (pred);
+          \draw[-{Latex[length=2.2mm]},DeckMuted,dashed] (pred.south) .. controls +(0,-0.9) and +(0,-0.9) .. (model.south);
+        \end{tikzpicture}
+      \end{center}
+      \vspace{0.35em}
+      Lookback is 24. Validation forecasts are recursive: each new prediction is appended back into the context.
+    \end{panelbox}
+
+    \column{0.44\textwidth}
+    \begin{panelbox}
+      \textbf{Notebook setup}
+      \small
+      \begin{itemize}
+        \item models: vanilla RNN, GRU, LSTM
+        \item features: target history only
+        \item baseline: naive persistence
+        \item device: CPU
+        \item readouts: skill, RMSE, MAE, MASE
+      \end{itemize}
+      \divider
+      \textbf{Caveat}
+      Training monitors teacher-forced loss, while the reported validation forecasts remain recursive and multi-step.
+    \end{panelbox}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{Deep Study: Results Summary}
+  \sectiontag{Deep}
+  \takeaway{GRU leads on mean skill overall, but the best deep model still depends on the series; even here, no single architecture dominates every case.}
+  \vspace{0.35em}
+
+  \begin{columns}[T,onlytextwidth]
+    \column{0.46\textwidth}
+    \begin{panelbox}
+      \textbf{Model leaderboard}
+      \small
+      \begin{tabularx}{\linewidth}{L{0.22\linewidth}R{0.16\linewidth}R{0.18\linewidth}R{0.18\linewidth}}
+        \toprule
+        \textbf{Model} & \textbf{Mean skill} & \textbf{Median skill} & \textbf{Mean RMSE} \\
+        \midrule
+        GRU & 0.339 & 0.273 & 36.59 \\
+        LSTM & 0.326 & 0.262 & 38.94 \\
+        RNN & 0.323 & 0.236 & 35.81 \\
+        Naive & 0.278 & 0.220 & 46.02 \\
+        \bottomrule
+      \end{tabularx}
+    \end{panelbox}
+
+    \column{0.50\textwidth}
+    \begin{panelbox}
+      \textbf{Per-series winners}
+      \small
+      \begin{tabularx}{\linewidth}{L{0.34\linewidth}L{0.18\linewidth}R{0.16\linewidth}R{0.16\linewidth}}
+        \toprule
+        \textbf{Reason} & \textbf{Winner} & \textbf{Skill} & \textbf{RMSE} \\
+        \midrule
+        Highest total weight & GRU & 0.5117 & 0.00050 \\
+        Longest history & LSTM & 0.0348 & 4.0166 \\
+        Most stable & Naive & 0.0000 & 0.00021 \\
+        Most volatile & RNN & 0.8194 & 139.22 \\
+        \bottomrule
+      \end{tabularx}
+    \end{panelbox}
+    \vspace{0.25em}
+    \begin{panelbox}
+      \textbf{Operational note}
+      All four models in the notebook completed successfully on all four representative series.
+    \end{panelbox}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{Deep Study: Forecast Panels}
+  \sectiontag{Deep}
+  \takeaway{The forecast panels show why mean-skill tables are not enough: deep models help most on the highest-weight and volatile cases, but the most stable series still resists improvement beyond a naive baseline.}
+  \vspace{0.35em}
+
+  \begin{center}
+    \includegraphics[width=\linewidth,height=0.75\textheight,keepaspectratio,trim=22 16 20 14,clip]{deep_forecast_panels.png}
+  \end{center}
+\end{frame}
+
+\begin{frame}[t]{Deep Lessons}
+  \sectiontag{Deep}
+  \takeaway{The deep notebook adds useful evidence, but it should be read as a sampled sequence-model study under adaptive splits, not as a definitive win over the classical notebook.}
+  \vspace{0.4em}
+
+  \begin{columns}[T,onlytextwidth]
+    \column{0.31\textwidth}
+    \begin{panelbox}
+      \textbf{Where deep helped}
+      \begin{itemize}
+        \item highest-weight case improved meaningfully
+        \item volatile case remained competitive
+        \item recurrent models captured more structure than naive persistence on several panels
+      \end{itemize}
+    \end{panelbox}
+
+    \column{0.31\textwidth}
+    \begin{panelbox}
+      \textbf{What did not change}
+      \begin{itemize}
+        \item the most stable series still behaves like a precision problem
+        \item the models remain target-only
+        \item the evidence is still limited to four representatives
+      \end{itemize}
+    \end{panelbox}
+
+    \column{0.31\textwidth}
+    \begin{panelbox}
+      \textbf{Interpretation rule}
+      The deep study is fair inside its own setup, but it cannot erase the split mismatch with the fixed-cutoff classical study.
+    \end{panelbox}
+  \end{columns}
+\end{frame}

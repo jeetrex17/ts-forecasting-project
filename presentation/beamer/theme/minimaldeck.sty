@@ -1,0 +1,186 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{minimaldeck}[2026/04/22 Minimal academic beamer theme]
+
+\RequirePackage{fontspec}
+\RequirePackage{graphicx}
+\RequirePackage{booktabs}
+\RequirePackage{tabularx}
+\RequirePackage{array}
+\RequirePackage{ragged2e}
+\RequirePackage{tcolorbox}
+\RequirePackage{tikz}
+\RequirePackage{pgfplots}
+\RequirePackage{amsmath}
+\RequirePackage{xspace}
+
+\newcommand{\DeckFontPath}{/Users/jeetraj/Library/TinyTeX/texmf-dist/fonts/opentype/public/lm/}
+\setsansfont{lmsans10-regular.otf}[
+  Path=\DeckFontPath,
+  BoldFont=lmsans10-bold.otf,
+  ItalicFont=lmsans10-oblique.otf,
+  BoldItalicFont=lmsans10-boldoblique.otf,
+]
+\setmainfont{lmsans10-regular.otf}[
+  Path=\DeckFontPath,
+  BoldFont=lmsans10-bold.otf,
+  ItalicFont=lmsans10-oblique.otf,
+  BoldItalicFont=lmsans10-boldoblique.otf,
+]
+\setmonofont{lmmono10-regular.otf}[
+  Path=\DeckFontPath,
+  ItalicFont=lmmono10-italic.otf,
+]
+
+\usetikzlibrary{arrows.meta,calc,fit,positioning,shapes.geometric}
+\pgfplotsset{compat=1.18}
+
+\definecolor{DeckInk}{HTML}{1F2933}
+\definecolor{DeckMuted}{HTML}{667482}
+\definecolor{DeckAccent}{HTML}{425B74}
+\definecolor{DeckSoft}{HTML}{F4F7FA}
+\definecolor{DeckBorder}{HTML}{DCE3EA}
+\definecolor{DeckCaveat}{HTML}{F6F2EB}
+\definecolor{DeckWhite}{HTML}{FFFFFF}
+
+\setbeamercolor{normal text}{fg=DeckInk,bg=DeckWhite}
+\setbeamercolor{structure}{fg=DeckAccent}
+\setbeamercolor{frametitle}{fg=DeckInk,bg=DeckWhite}
+\setbeamercolor{title}{fg=DeckInk}
+\setbeamercolor{subtitle}{fg=DeckMuted}
+\setbeamercolor{panelbox}{fg=DeckInk,bg=DeckSoft}
+\setbeamercolor{takeawaybox}{fg=DeckInk,bg=DeckSoft}
+\setbeamercolor{caveatbox}{fg=DeckInk,bg=DeckCaveat}
+\setbeamercolor{statbox}{fg=DeckInk,bg=DeckSoft}
+\setbeamercolor{footline}{fg=DeckMuted,bg=DeckWhite}
+
+\setbeamertemplate{navigation symbols}{}
+\setbeamersize{text margin left=1.2cm, text margin right=1.2cm}
+\setlength{\parskip}{0.2em}
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.12}
+\renewcommand{\familydefault}{\sfdefault}
+
+\newcolumntype{Y}{>{\RaggedRight\arraybackslash}X}
+\newcolumntype{L}[1]{>{\RaggedRight\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\Centering\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\RaggedLeft\arraybackslash}p{#1}}
+
+\setbeamertemplate{itemize item}{\color{DeckAccent}\small$\bullet$}
+\setbeamertemplate{itemize subitem}{\color{DeckMuted}\tiny$\bullet$}
+
+\setbeamerfont{title}{size=\LARGE,series=\bfseries}
+\setbeamerfont{subtitle}{size=\normalsize}
+\setbeamerfont{frametitle}{size=\Large,series=\bfseries}
+\setbeamerfont{framesubtitle}{size=\small}
+
+\makeatletter
+\setbeamertemplate{frametitle}{
+  \vspace{0.15em}
+  \begin{beamercolorbox}[wd=\paperwidth,leftskip=1.2cm,rightskip=1.2cm]{frametitle}
+    {\usebeamerfont{frametitle}\insertframetitle\par}
+    \ifx\insertframesubtitle\@empty
+    \else
+      {\usebeamerfont{framesubtitle}\color{DeckMuted}\insertframesubtitle\par}
+    \fi
+  \end{beamercolorbox}
+  \vspace{-0.25em}
+}
+\makeatother
+
+\setbeamertemplate{footline}{
+  \leavevmode
+  \hbox{%
+    \begin{beamercolorbox}[wd=.78\paperwidth,ht=3ex,dp=1.25ex,leftskip=1.2cm,rightskip=1em]{footline}
+      \footnotesize\textcolor{DeckMuted}{Applied Forecasting Methods}
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.22\paperwidth,ht=3ex,dp=1.25ex,rightskip=1.2cm,center]{footline}
+      \footnotesize\textcolor{DeckMuted}{\insertframenumber{} / \inserttotalframenumber}
+    \end{beamercolorbox}%
+  }
+}
+
+\newcommand{\sectiontag}[1]{%
+  {\color{DeckAccent}\footnotesize\bfseries\MakeUppercase{#1}}\par
+  \vspace{0.25em}
+}
+
+\newcommand{\takeaway}[1]{%
+  \begin{beamercolorbox}[wd=\linewidth,sep=0.5ex,rounded=true]{takeawaybox}
+    {\small\textbf{Takeaway.} #1}
+  \end{beamercolorbox}
+}
+
+\newcommand{\caveat}[1]{%
+  \begin{beamercolorbox}[wd=\linewidth,sep=0.5ex,rounded=true]{caveatbox}
+    {\small\textbf{Caveat.} #1}
+  \end{beamercolorbox}
+}
+
+\newenvironment{panelbox}{%
+  \begin{beamercolorbox}[wd=\linewidth,sep=0.55ex,rounded=true]{panelbox}
+  \justifying
+}{%
+  \end{beamercolorbox}
+}
+
+\newcommand{\statcard}[2]{%
+  \begin{beamercolorbox}[wd=\linewidth,sep=0.55ex,rounded=true]{statbox}
+    \centering
+    {\scriptsize\color{DeckMuted}\bfseries\MakeUppercase{#1}\par}
+    \vspace{0.15em}
+    {\Large\bfseries #2\par}
+  \end{beamercolorbox}
+}
+
+\newcommand{\smallstat}[2]{%
+  {\scriptsize\color{DeckMuted}\bfseries\MakeUppercase{#1}}\par
+  {\large\bfseries #2}\par
+}
+
+\newcommand{\divider}{\par\vspace{0.35em}{\color{DeckBorder}\rule{\linewidth}{0.5pt}}\par\vspace{0.35em}}
+\newcommand{\inlinecode}[1]{{\ttfamily #1}}
+\newcommand{\muted}[1]{{\color{DeckMuted}#1}}
+\newcommand{\softbullet}[1]{\par\noindent{\color{DeckAccent}\small$\bullet$}\hspace{0.45em}#1\par}
+
+\tcbset{
+  deckbox/.style={
+    colback=DeckWhite,
+    colframe=DeckBorder,
+    boxrule=0.6pt,
+    arc=4pt,
+    left=8pt,
+    right=8pt,
+    top=7pt,
+    bottom=7pt,
+    before skip=0pt,
+    after skip=0pt,
+  },
+  decksoft/.style={
+    deckbox,
+    colback=DeckSoft,
+  },
+  deckaccent/.style={
+    deckbox,
+    colback=DeckSoft,
+    colframe=DeckAccent!25,
+  },
+  deckwarm/.style={
+    deckbox,
+    colback=DeckCaveat,
+  },
+}
+
+\newtcolorbox{softcard}[1][]{
+  decksoft,
+  #1,
+}
+
+\newtcolorbox{whitecard}[1][]{
+  deckbox,
+  #1,
+}
+
+\newtcolorbox{warmcard}[1][]{
+  deckwarm,
+  #1,
+}

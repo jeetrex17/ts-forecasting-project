@@ -1,0 +1,45 @@
+{
+  "missing_columns": 48,
+  "top_missing": [
+    {
+      "column": "feature_at",
+      "missing_pct": 12.4719
+    },
+    {
+      "column": "feature_by",
+      "missing_pct": 11.0192
+    },
+    {
+      "column": "feature_ay",
+      "missing_pct": 8.542
+    },
+    {
+      "column": "feature_cd",
+      "missing_pct": 7.4964
+    },
+    {
+      "column": "feature_ce",
+      "missing_pct": 5.1678
+    },
+    {
+      "column": "feature_cf",
+      "missing_pct": 4.4289
+    },
+    {
+      "column": "feature_al",
+      "missing_pct": 4.2233
+    },
+    {
+      "column": "feature_aw",
+      "missing_pct": 3.8444
+    },
+    {
+      "column": "feature_bz",
+      "missing_pct": 2.8426
+    },
+    {
+      "column": "feature_bi",
+      "missing_pct": 2.7622
+    }
+  ]
+}

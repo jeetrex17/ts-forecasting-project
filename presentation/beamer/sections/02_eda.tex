@@ -1,0 +1,237 @@
+\begin{frame}[t]{Missing Values}
+  \sectiontag{EDA}
+  \takeaway{Missingness exists in 48 columns, but the maximum missing rate is only about 12.47\%, so the main issue is selective feature reliability rather than catastrophic data loss.}
+  \vspace{0.2em}
+
+  \begin{columns}[T,onlytextwidth]
+    \column{0.64\textwidth}
+    \begin{whitecard}
+      {\bfseries Top missing features by rate}\par
+      \vspace{0.18em}
+      \includegraphics[width=\linewidth,height=0.5\textheight,keepaspectratio]{01_missing_values_chart.png}
+    \end{whitecard}
+
+    \column{0.32\textwidth}
+    \begin{whitecard}
+      {\bfseries Top missing columns}\par
+      \vspace{0.22em}
+      \footnotesize
+      \begin{tabularx}{\linewidth}{L{0.58\linewidth}R{0.28\linewidth}}
+        \toprule
+        \textbf{Column} & \textbf{Rate} \\
+        \midrule
+        feature\_at & 12.47\% \\
+        feature\_by & 11.02\% \\
+        feature\_ay & 8.54\% \\
+        feature\_cd & 7.50\% \\
+        feature\_ce & 5.17\% \\
+        \bottomrule
+      \end{tabularx}
+    \end{whitecard}
+
+    \begin{warmcard}
+      {\bfseries Modeling implication}\par
+      \vspace{0.18em}
+      \footnotesize
+      Feature reliability should be checked before using the full feature set, but the missingness levels are still low enough to support a meaningful feature audit.
+    \end{warmcard}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{Target Distribution}
+  \sectiontag{EDA}
+  \takeaway{The target is centered near zero, but the full distribution is strongly heavy-tailed, so the slide zooms into the central 90\% window for readability while keeping tail statistics explicit.}
+  \vspace{0.2em}
+
+  \begin{columns}[T,onlytextwidth]
+    \column{0.62\textwidth}
+    \begin{whitecard}
+      {\bfseries Central mass of \inlinecode{y\_target}}\par
+      \vspace{0.18em}
+      \includegraphics[width=\linewidth,height=0.5\textheight,keepaspectratio]{01_target_distribution_center.png}
+    \end{whitecard}
+
+    \column{0.34\textwidth}
+    \begin{softcard}
+      {\bfseries Summary statistics}\par
+      \vspace{0.22em}
+      \footnotesize
+      \begin{tabularx}{\linewidth}{L{0.48\linewidth}R{0.35\linewidth}}
+        \toprule
+        \textbf{Measure} & \textbf{Value} \\
+        \midrule
+        Median & $-0.0006$ \\
+        1\% quantile & $-82.80$ \\
+        5\% quantile & $-7.61$ \\
+        95\% quantile & $4.50$ \\
+        99\% quantile & $62.92$ \\
+        Full min/max & {\scriptsize $[-2201.88,\ 2314.41]$} \\
+        \bottomrule
+      \end{tabularx}
+      \divider
+      \footnotesize Most observations sit close to zero, but tail events remain large enough to distort naive error summaries.
+    \end{softcard}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{Representative Anchor Series}
+  \sectiontag{EDA}
+  \takeaway{The project uses four anchor series to teach the range of behavior in the panel: one high-weight case, one long-history case, one stable case, and one volatile case.}
+  \vspace{0.2em}
+
+  \begin{columns}[T,onlytextwidth]
+    \column{0.38\textwidth}
+    \begin{softcard}
+      {\bfseries Why these four series}\par
+      \small
+      \softbullet{\textbf{High weight} | H25 | len 156: metric-sensitive, near-flat case}
+      \softbullet{\textbf{Long history} | H1 | len 212: richest lag context}
+      \softbullet{\textbf{Stable} | H1 | len 170: precision-dominated case}
+      \softbullet{\textbf{Volatile} | H25 | len 162: strongest instability}
+      \divider
+      \footnotesize These are teaching anchors, not a claim that four series summarize the entire panel.
+    \end{softcard}
+
+    \column{0.58\textwidth}
+    \begin{whitecard}
+      {\bfseries Representative series plots}\par
+      \vspace{0.18em}
+      \includegraphics[width=\linewidth,height=0.52\textheight,keepaspectratio]{01_representative_series.png}
+    \end{whitecard}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{Stationarity And Differencing}
+  \sectiontag{EDA}
+  \takeaway{On the sampled eligible series, the ADF stationary share rises from 69\% in raw levels to 100\% after first differencing, so differencing is not cosmetic here; it changes the data regime.}
+  \vspace{0.2em}
+
+  \begin{columns}[T,onlytextwidth]
+    \column{0.58\textwidth}
+    \begin{whitecard}
+      {\bfseries Raw levels versus first differences}\par
+      \vspace{0.18em}
+      \includegraphics[width=\linewidth,height=0.5\textheight,keepaspectratio]{01_stationarity.png}
+    \end{whitecard}
+
+    \column{0.38\textwidth}
+    \begin{softcard}
+      {\bfseries How to read ADF and KPSS}\par
+      \vspace{0.18em}
+      \small
+      \softbullet{\textbf{ADF} asks whether a unit-root style non-stationary pattern is present.}
+      \softbullet{\textbf{KPSS} asks whether a stationary level assumption is reasonable.}
+      \softbullet{Using both tests prevents us from over-claiming stationarity from one test alone.}
+      \divider
+      \footnotesize
+      Later classical models should be allowed to use first differencing, especially on unstable series, because the notebook evidence says that transformation materially stabilizes the target.
+    \end{softcard}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{Panel Lag Structure}
+  \sectiontag{EDA}
+  \takeaway{The panel-level lag summary shows that early lags dominate, especially lags 1 through 5, which supports compact autoregressive memory rather than long, diffuse dependence.}
+  \vspace{0.2em}
+
+  \begin{columns}[T,onlytextwidth]
+    \column{0.60\textwidth}
+    \begin{whitecard}
+      {\bfseries Mean absolute ACF and PACF by lag}\par
+      \vspace{0.18em}
+      \includegraphics[width=\linewidth,height=0.5\textheight,keepaspectratio]{01_panel_lags.png}
+    \end{whitecard}
+
+    \column{0.36\textwidth}
+    \begin{softcard}
+      {\bfseries What this means}\par
+      \vspace{0.18em}
+      \small
+      \softbullet{ACF captures persistence carried from recent history.}
+      \softbullet{PACF isolates each lag's direct contribution after shorter lags are accounted for.}
+      \softbullet{Both curves decay quickly, so short-memory structure is the main signal.}
+      \divider
+      \footnotesize
+      Low-order AR, ARMA, differenced ARIMA, and short target-history windows are all supported by this lag picture.
+    \end{softcard}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{Libraries Used And Why}
+  \sectiontag{EDA}
+  \takeaway{The notebook stack is deliberately practical: use pandas and pyarrow for large panel data, matplotlib and seaborn for readable EDA, and statsmodels for time-series diagnostics.}
+  \vspace{0.2em}
+
+  \begin{columns}[T,onlytextwidth]
+    \column{0.31\textwidth}
+    \begin{whitecard}
+      {\bfseries Data and IO}\par
+      \vspace{0.18em}
+      \footnotesize
+      \softbullet{\inlinecode{pandas}: grouped summaries, tables, manifests}
+      \softbullet{\inlinecode{numpy}: arrays, quantiles, lag calculations}
+      \softbullet{\inlinecode{pyarrow}: large parquet loading}
+      \softbullet{\inlinecode{pathlib}, \inlinecode{json}: reproducible artifacts}
+    \end{whitecard}
+
+    \column{0.31\textwidth}
+    \begin{softcard}
+      {\bfseries Visualization}\par
+      \vspace{0.18em}
+      \footnotesize
+      \softbullet{\inlinecode{matplotlib}: final EDA figures}
+      \softbullet{\inlinecode{seaborn}: high-level statistical plotting}
+      \divider
+      The deck reuses only the strongest visuals instead of dumping raw notebook outputs onto slides.
+    \end{softcard}
+
+    \column{0.31\textwidth}
+    \begin{warmcard}
+      {\bfseries Diagnostics}\par
+      \vspace{0.18em}
+      \footnotesize
+      \softbullet{\inlinecode{statsmodels}: ADF, KPSS, ACF, PACF}
+      \softbullet{Enough for the introduction and EDA section}
+      \divider
+      Later modeling notebooks additionally use forecasting routines from \inlinecode{statsmodels} and recurrent models from \inlinecode{torch}, but this PDF stops before those result sections.
+    \end{warmcard}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{EDA Synthesis}
+  \sectiontag{EDA}
+  \takeaway{The EDA does not just describe the dataset. It narrows the later modeling space by telling us what assumptions are plausible and what comparisons would be misleading.}
+  \vspace{0.22em}
+
+  \begin{columns}[T,onlytextwidth]
+    \column{0.48\textwidth}
+    \begin{softcard}
+      {\bfseries What we learned about the data}\par
+      \vspace{0.18em}
+      \footnotesize
+      \softbullet{The task is a weighted panel problem, not one ordinary time series.}
+      \softbullet{Missingness is selective rather than catastrophic.}
+      \softbullet{The target is centered near zero, but heavy tails remain important.}
+      \softbullet{Representative series expose large differences in stability, history length, and weight.}
+    \end{softcard}
+
+    \column{0.48\textwidth}
+    \begin{whitecard}
+      {\bfseries What this changes for modeling}\par
+      \vspace{0.18em}
+      \footnotesize
+      \softbullet{Chronology must be preserved in every split.}
+      \softbullet{Weights must remain central when reading scores.}
+      \softbullet{Differencing should be available where levels are not stable enough.}
+      \softbullet{Short-lag, compact-memory models are more defensible than arbitrarily long histories.}
+    \end{whitecard}
+  \end{columns}
+
+  \vspace{0.18em}
+  \begin{warmcard}
+    {\bfseries Transition}\par
+    \vspace{0.12em}
+    \footnotesize
+    With the task, series definition, split logic, and EDA now established, the next project section can move into classical and deep forecasting with a much clearer methodological baseline.
+  \end{warmcard}
+\end{frame}

@@ -1,0 +1,147 @@
+\begin{frame}[t]{Classical Study: Setup and Constraints}
+  \sectiontag{Classical}
+  \takeaway{The classical notebook stays intentionally small and interpretable, but the fixed cutoff is harsh: two of the four representative series have only seven pre-cutoff training points.}
+  \vspace{0.35em}
+
+  \begin{columns}[T,onlytextwidth]
+    \column{0.40\textwidth}
+    \begin{panelbox}
+      \textbf{Representative-series train lengths}
+      \small
+      \begin{tabularx}{\linewidth}{L{0.37\linewidth}R{0.17\linewidth}R{0.17\linewidth}Y}
+        \toprule
+        \textbf{Series} & \textbf{Train} & \textbf{Val} & \textbf{Short train?} \\
+        \midrule
+        Longest history & 55 & 157 & no \\
+        Highest total weight & 7 & 149 & yes \\
+        Most volatile & 131 & 31 & no \\
+        Most stable & 7 & 163 & yes \\
+        \bottomrule
+      \end{tabularx}
+      \divider
+      Skipped fits and flat forecasts are real notebook findings, not implementation accidents.
+    \end{panelbox}
+
+    \column{0.56\textwidth}
+    \includegraphics[width=\linewidth,height=0.68\textheight,keepaspectratio]{classical_cutoff_zoom.png}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{Classical Study: Model Lineup}
+  \sectiontag{Classical}
+  \takeaway{The lineup deliberately mixes robust smoothers with low-order AR, MA, ARMA, and differenced ARIMA models so that structural complexity can be compared against train-window feasibility.}
+  \vspace{0.35em}
+
+  \begin{panelbox}
+    \small
+    \begin{tabularx}{\linewidth}{L{0.13\linewidth}L{0.36\linewidth}C{0.14\linewidth}Y}
+      \toprule
+      \textbf{Family} & \textbf{Representative models} & \textbf{Min train} & \textbf{Interpretation} \\
+      \midrule
+      Smoothing & Rolling Mean, SES, Holt & 2 / 3 / 5 & Stable defaults when data is short or nearly flat \\
+      AR & AR(1), AR(2), AR(3) & 20 & Direct lag dependence in levels \\
+      MA & MA(1), MA(2), MA(3) & 20 & Shock smoothing in levels \\
+      ARMA & ARMA(1,1) to ARMA(3,3) & 20 & Combined AR and MA structure \\
+      ARIMA & (0,1,1), (1,1,0), (1,1,1) & 20 & First difference, then fit low-order ARMA \\
+      \bottomrule
+    \end{tabularx}
+  \end{panelbox}
+
+  \vspace{0.35em}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.48\textwidth}
+    \begin{panelbox}
+      \textbf{Why straight lines appear}
+      \begin{itemize}
+        \item Rolling Mean is constant by design
+        \item SES usually becomes a flat multi-step level forecast
+        \item Holt extrapolates a straight trend
+      \end{itemize}
+    \end{panelbox}
+
+    \column{0.48\textwidth}
+    \begin{panelbox}
+      \textbf{Why that is acceptable}
+      When only 7 training points exist before the cutoff, simplicity is often the honest consequence of the setup rather than a weakness of the plot.
+    \end{panelbox}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{Classical Study: Per-Series Best Results}
+  \sectiontag{Classical}
+  \takeaway{There is no universal classical winner. Smoothing survives the short-train cases, while differenced ARIMA is the only family with clearly positive upside on the volatile series.}
+  \vspace{0.35em}
+
+  \begin{columns}[T,onlytextwidth]
+    \column{0.62\textwidth}
+    \begin{panelbox}
+      \small
+      \begin{tabularx}{\linewidth}{L{0.27\linewidth}L{0.19\linewidth}L{0.14\linewidth}R{0.10\linewidth}R{0.11\linewidth}R{0.09\linewidth}}
+        \toprule
+        \textbf{Series} & \textbf{Best model} & \textbf{Family} & \textbf{Skill} & \textbf{RMSE} & \textbf{Train} \\
+        \midrule
+        Highest total weight & SES & Smoothing & 0.0000 & 0.0006 & 7 \\
+        Longest history & ARMA(1,3) & ARMA & 0.0000 & 3.0400 & 55 \\
+        Most stable & SES & Smoothing & 0.0000 & 0.0001 & 7 \\
+        Most volatile & ARIMA(1,1,1) & ARIMA & 0.8412 & 129.8104 & 131 \\
+        \bottomrule
+      \end{tabularx}
+    \end{panelbox}
+
+    \column{0.34\textwidth}
+    \begin{panelbox}
+      \textbf{Reading}
+      \begin{itemize}
+        \item the two high-weight, near-flat series do not reward extra complexity under the fixed cutoff
+        \item more history helps, but not enough to make the longest-history case easy
+        \item the volatile series is where differencing actually matters
+      \end{itemize}
+    \end{panelbox}
+    \vspace{0.25em}
+    \caveat{Mean-skill averages across models are secondary here because many models are infeasible on the short-train series.}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{Classical Study: Forecast Overlays}
+  \sectiontag{Classical}
+  \takeaway{The forecast zoom confirms the notebook story: many models collapse toward simple trajectories on short histories, while the volatile case visibly rewards a differenced ARIMA-style response.}
+  \vspace{0.35em}
+
+  \begin{center}
+    \includegraphics[width=\linewidth,height=0.73\textheight,keepaspectratio,trim=20 14 18 12,clip]{classical_forecast_zoom.png}
+  \end{center}
+\end{frame}
+
+\begin{frame}[t]{Classical Lessons}
+  \sectiontag{Classical}
+  \takeaway{The classical notebook is useful because it exposes its limits clearly: train-window scarcity, not just model family choice, explains much of the observed behavior.}
+  \vspace{0.4em}
+
+  \begin{columns}[T,onlytextwidth]
+    \column{0.31\textwidth}
+    \begin{panelbox}
+      \textbf{What classical models do well}
+      \begin{itemize}
+        \item smoothers remain stable when data is tiny
+        \item local models are easy to interpret series-by-series
+        \item ARIMA can exploit differencing on unstable series
+      \end{itemize}
+    \end{panelbox}
+
+    \column{0.31\textwidth}
+    \begin{panelbox}
+      \textbf{What limits them here}
+      \begin{itemize}
+        \item two series have only seven training points
+        \item many complex models are skipped by design
+        \item fit feasibility becomes part of the result
+      \end{itemize}
+    \end{panelbox}
+
+    \column{0.31\textwidth}
+    \begin{panelbox}
+      \textbf{Practical conclusion}
+      For these notebooks, the classical story is not “complexity wins.” It is “complexity helps only when the data regime actually supports it.”
+    \end{panelbox}
+  \end{columns}
+\end{frame}
