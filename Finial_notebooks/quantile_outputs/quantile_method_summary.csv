@@ -1,0 +1,6 @@
+Series,method,selected_folds,fold_count,selected_share
+Longest History,lgb_conformal,5,5,1.0
+Highest Total Weight,naive_lag1,2,2,1.0
+Most Volatile,naive_lag1,3,3,1.0
+Most Stable,lgb_conformal,2,3,0.6666666666666666
+Most Stable,naive_lag1,1,3,0.3333333333333333
