@@ -24,8 +24,11 @@ def apply_report_style():
 
 
 def save_figure(fig, name, figures_dir):
-    """Save a figure as PNG and PDF for inclusion in the report."""
+    """Save a figure as PNG and PDF for the report, and leave it open
+    so the notebook renders it inline. Do not close the figure here —
+    jupyter's inline backend displays whatever is still attached.
+    """
     figures_dir.mkdir(parents=True, exist_ok=True)
     fig.savefig(figures_dir / f"{name}.png")
     fig.savefig(figures_dir / f"{name}.pdf")
-    plt.close(fig)
+    return fig
