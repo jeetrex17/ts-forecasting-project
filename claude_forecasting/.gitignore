@@ -1,0 +1,6 @@
+data/raw/*.parquet
+data/processed/*.parquet
+**/__pycache__/
+**/.ipynb_checkpoints/
+.venv/
+*.egg-info/

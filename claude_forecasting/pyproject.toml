@@ -1,0 +1,29 @@
+[project]
+name = "claude_forecasting"
+version = "0.1.0"
+description = "Hedge Fund Panel Forecasting"
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.2",
+    "polars>=1.0",
+    "numpy>=1.26",
+    "pyarrow>=15",
+    "scikit-learn>=1.4",
+    "statsmodels>=0.14",
+    "lightgbm>=4.3",
+    "xgboost>=2.0",
+    "mapie>=0.8",
+    "optuna>=3.6",
+    "matplotlib>=3.8",
+    "seaborn>=0.13",
+    "jupyter>=1.0",
+    "ipykernel>=6.29",
+    "tqdm>=4.66",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
