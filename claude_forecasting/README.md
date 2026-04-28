@@ -66,3 +66,23 @@ done
 ```
 
 Total runtime on M4 is approximately 30–60 minutes depending on hyperparameter sweep depth.
+
+## Building the report
+
+The report lives under `report/`. It uses single-column LaTeX (`article` class, 11pt, 1in margins) and pulls figures from `report/figures/`. To build:
+
+```bash
+cd report
+tectonic main.tex          # self-contained, no LaTeX install required
+# or
+latexmk -pdf main.tex      # if you have a full LaTeX install
+```
+
+The current draft covers:
+
+- Section 1: Problem statement
+- Section 2: Forecast targets and series identity
+- Section 3: Weighted skill score (formula, worked examples, comparison vs RMSE/MAE/R^2, design rationale)
+- Section 4: Dataset and exploratory analysis (full diagnostic chain plus the three originality findings)
+
+Modelling sections (5+) will be added as their notebooks land. Bibliography is deferred to the end of the project.

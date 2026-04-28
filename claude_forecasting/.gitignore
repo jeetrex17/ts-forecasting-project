@@ -4,3 +4,11 @@ data/processed/*.parquet
 **/.ipynb_checkpoints/
 .venv/
 *.egg-info/
+
+# LaTeX build artifacts (commit main.pdf, ignore intermediates)
+report/*.aux
+report/*.log
+report/*.out
+report/*.toc
+report/*.synctex.gz
+report/sections/*.aux

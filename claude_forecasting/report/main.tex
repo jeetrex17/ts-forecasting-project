@@ -1,0 +1,60 @@
+\documentclass[11pt]{article}
+
+% --- Geometry: ~6.5 inch text width matches matplotlib defaults in cf.viz ---
+\usepackage[a4paper, margin=1in]{geometry}
+
+% --- Math, graphics, tables ---
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{microtype}
+
+% --- Cross references ---
+\usepackage[hidelinks]{hyperref}
+\usepackage[noabbrev,capitalise]{cleveref}
+
+% --- Figures live in report/figures/ ---
+\graphicspath{{figures/}}
+
+% --- Tighter section spacing ---
+\usepackage{titlesec}
+\titlespacing*{\section}{0pt}{16pt}{8pt}
+\titlespacing*{\subsection}{0pt}{12pt}{6pt}
+
+% --- Title and author block ---
+\title{\textbf{Hedge Fund Panel Forecasting} \\[4pt]
+\large Multi-Horizon Time-Series Modelling under a Weighted Skill Score Metric}
+
+\author{
+  Author 1\\
+  \and
+  Author 2\\
+  \and
+  Author 3\\
+  \and
+  Author 4
+}
+
+\date{DA-IICT, Semester 6 \\ Applied Forecasting Methods, 2026}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+\noindent\textit{Abstract to be written after final results have landed.} This project studies a panel of approximately 37,000 anonymised time series taken from a Kaggle hedge-fund forecasting competition. The target is forecast at four lookahead horizons under a weighted skill score that concentrates roughly two thirds of the evaluation mass in the top one percent of rows. The first phase of the work, presented in this draft, establishes the structure of the panel, the diagnostic conditions for classical and machine-learning models, and three findings that were not surfaced in the midway report: the four horizons are coupled cumulations of a single short-step process, the maximum panel weight lives at horizon three, and per-horizon target scaling differs by a factor of more than four.
+\end{abstract}
+
+\vspace{8pt}
+
+\input{sections/01_problem_statement}
+\input{sections/02_targets_and_series}
+\input{sections/03_skill_score}
+\input{sections/04_eda}
+
+\end{document}

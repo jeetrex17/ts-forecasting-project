@@ -1,0 +1,38 @@
+\section{Problem Statement}
+\label{sec:problem}
+
+We work with a publicly released Kaggle competition dataset titled \emph{Hedge fund -- time-series forecasting}. The competition sponsor releases a panel of anonymised numerical series with engineered features and asks competitors to forecast a continuous target at four lookahead horizons. The dataset is intentionally anonymised: identifiers, feature names, and the underlying financial domain are stripped. What remains is a clean, mathematically well-defined supervised forecasting problem with a non-trivial weighting scheme.
+
+\subsection{What is being forecast}
+
+Each row of the panel is identified by the tuple
+\[
+(\mathtt{code},\ \mathtt{sub\_code},\ \mathtt{sub\_category},\ \mathtt{horizon},\ \mathtt{ts\_index})
+\]
+and carries a continuous target $y_{\text{target}}$, a non-negative competition weight, and 86 anonymised numerical covariates of the form $\mathtt{feature\_a}, \mathtt{feature\_b}, \ldots$ The integer time index $\mathtt{ts\_index}$ runs over the contiguous range 1--3601 in the public training partition and 3602--4376 in the held-out test partition. The training panel contains 5{,}337{,}414 rows and the test panel contains 1{,}447{,}107 rows.
+
+The four forecast horizons are $H \in \{1,\ 3,\ 10,\ 25\}$, interpreted as the lookahead in time units. For each $(\mathtt{code},\mathtt{sub\_code},\mathtt{sub\_category})$ the panel typically carries all four horizons at the same $\mathtt{ts\_index}$, so the natural unit of analysis is the 4-tuple key above. There are 36{,}923 distinct series in train under that definition.
+
+\subsection{Why the problem is hard}
+
+The dataset combines three well-known difficulties that make naive baselines a bad guide:
+
+\begin{enumerate}
+  \item \textbf{Heavy-tailed target.} The target distribution is centred near zero with an interquartile range of approximately $\pm 0.05$, but the full range runs from roughly $-2200$ to $+2300$. The 1\% and 99\% percentiles are at approximately $\pm 82$. Plain mean-squared losses are therefore extremely sensitive to a small number of tail rows.
+  \item \textbf{Concentrated evaluation weight.} The competition metric is sample-weighted, and the weights are extraordinarily skewed: the median weight is approximately $1.7 \times 10^{3}$ while the maximum is $1.4 \times 10^{13}$. As a result, the top one percent of rows by weight carry approximately 64\% of all evaluation mass, and the top five percent carry approximately 92\%. Any unweighted analysis can recommend the wrong model.
+  \item \textbf{Limited per-series history at long horizons.} Although the panel is large in aggregate, only about 5\% of individual series cleanly cross the validation cutoff used in this work ($\mathtt{ts\_index}=2880$). Some series have as few as seven training points before the cutoff, which makes per-series classical fitting infeasible for many model families.
+\end{enumerate}
+
+\subsection{Why the problem is interesting}
+
+Beyond being a real competitive forecasting problem, three properties make the dataset a useful subject for a methodological course project:
+
+\begin{itemize}
+  \item \emph{Anonymisation forces statistical reasoning.} Without semantic feature names we cannot fall back on domain priors. Every claim must be supported by a measurable property of the data.
+  \item \emph{The weighting scheme rewards precision on rare rows.} A model that improves average behaviour while degrading on the high-weight rows can lose to a simpler model. This is a mechanically different objective from standard regression and warrants explicit study.
+  \item \emph{The four horizons are coupled.} As we show in \cref{sec:cumulation}, the targets at $H \in \{3,10,25\}$ are well approximated by rolling cumulative sums of the $H=1$ process. This structure is not advertised in the dataset description and admits a modelling strategy that the midway report did not consider.
+\end{itemize}
+
+\subsection{Scope of this report}
+
+The remainder of this report covers the diagnostic and exploratory phase of the project. \Cref{sec:targets} formalises the panel keys and the chronological constraint that any validation strategy must respect. \Cref{sec:skill} develops the official competition metric in detail, with worked numerical examples and a comparison against standard error metrics. \Cref{sec:eda} carries out a full exploratory analysis: schema sanity, missingness, target and weight distributions, stationarity diagnostics, autocorrelation structure, feature audit, and three findings about the multi-horizon structure of the panel that constrain every modelling decision in subsequent chapters of the project. Modelling chapters (classical baselines, global gradient-boosted models, the multi-horizon aggregation experiment, probabilistic forecasting, and ensembles) will be added as those notebooks land.

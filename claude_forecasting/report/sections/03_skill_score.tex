@@ -1,0 +1,105 @@
+\section{The Weighted Skill Score}
+\label{sec:skill}
+
+The competition is decided by a single scalar: the \emph{weighted skill score}. Because the rest of the project uses this metric for every model comparison, ensemble weight, and bootstrap interval, it deserves a dedicated section. We give the formula, walk through every term, work three numerical examples, and explain why a competition organiser would pick a metric of this shape over more familiar alternatives such as RMSE, MAE, or $R^2$.
+
+\subsection{Definition}
+
+Given truths $y_i$, predictions $\hat y_i$, and non-negative weights $w_i$ for $i=1,\ldots,n$, the weighted skill score is
+\begin{equation}
+\label{eq:skill}
+  \text{score}(y, \hat y; w) \;=\; \sqrt{\,1 \;-\; \mathrm{clip}_{[0,1]}\!\left( \dfrac{\sum_{i} w_i\,(y_i - \hat y_i)^2}{\sum_{i} w_i\,y_i^2} \right)\,}
+\end{equation}
+where $\mathrm{clip}_{[0,1]}(x) = \min(\max(x,0),1)$. The function returns 1 for a perfect prediction and 0 when the prediction is no better than the all-zero forecast.
+
+\subsection{Term-by-term walkthrough}
+
+\paragraph{Numerator $\sum_i w_i (y_i - \hat y_i)^2$.}
+This is the weighted sum of squared residuals. It is zero when $\hat y = y$ everywhere and grows quadratically with prediction error. Because the squared error is multiplied by $w_i$, rows with larger weights contribute proportionally more to the penalty. In our panel the weight distribution is extremely concentrated, so this term is dominated by a small fraction of high-weight rows.
+
+\paragraph{Denominator $\sum_i w_i y_i^2$.}
+This is the weighted ``energy'' of the truth. It is purely a function of the data, independent of the prediction, and acts as a normaliser. Without this normaliser, two panels with very different target magnitudes (for example a high-volatility horizon and a low-volatility horizon) could not be scored on the same scale.
+
+\paragraph{The ratio.}
+The ratio
+\[
+R \;=\; \dfrac{\sum w_i (y_i - \hat y_i)^2}{\sum w_i y_i^2}
+\]
+is a weighted, non-centred ``unexplained variance'' measure. It is 0 when predictions are perfect and 1 when predictions are identically zero. It can exceed 1 when predictions are worse than zero (for example, when the prediction has the wrong sign at scale). It can in principle be unbounded above if the prediction is far from any reasonable point estimate.
+
+\paragraph{The clip.}
+$\mathrm{clip}_{[0,1]}(R)$ enforces $R \in [0,1]$. The lower bound at zero is automatic from the squares; the upper bound at 1 is the meaningful one. It says: \emph{no model that is worse than predicting zero gets credit for being even worse}. The clip stops the inside of the square root from going negative and ensures the score is always real. Operationally the clip rarely engages on competent models, but it makes the metric robust to a single catastrophic prediction.
+
+\paragraph{The square root.}
+The outer square root maps $1 - R$ from a variance-like quantity onto a correlation-like scale. A skill of $0.5$ corresponds to $R = 0.75$, that is, ``three quarters of weighted target energy is unexplained''. A skill of $0.95$ corresponds to $R = 0.0975$, ``ten percent of energy unexplained''. The square root makes mid-range skills feel as familiar as Pearson correlations rather than as compressed variance ratios.
+
+\subsection{Worked numerical examples}
+
+To make the behaviour of \cref{eq:skill} concrete, consider three predictions on a tiny five-row panel where the truth and weights are
+\[
+y = (1, 2, 3, 4, 5)^\top, \qquad w = (1, 1, 1, 1, 10)^\top.
+\]
+Note the heavy concentration: the last row carries 10/14 of the total weight. The weighted target energy is $\sum w_i y_i^2 = 1 + 4 + 9 + 16 + 250 = 280$.
+
+\begin{table}[h]
+\centering
+\caption{Behaviour of the weighted skill score on three contrasting predictions.}
+\label{tab:skill_examples}
+\begin{tabular}{lrrrr}
+\toprule
+Prediction $\hat y$ & Numerator & Ratio $R$ & $\mathrm{clip}(R)$ & Skill \\
+\midrule
+$(1,2,3,4,5)$ — perfect            & $0$    & $0.000$ & $0.000$ & $1.000$ \\
+$(0,0,0,0,0)$ — zero               & $280$  & $1.000$ & $1.000$ & $0.000$ \\
+$(0.9,1.9,3.1,4.0,4.9)$ — close    & $0.13$ & $0.000$ & $0.000$ & $0.999$ \\
+$(2,4,6,8,-5)$ — wrong sign tail   & $1014$ & $3.621$ & $1.000$ & $0.000$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+A few things are worth noticing in \cref{tab:skill_examples}. First, predicting all zeros lands exactly at skill = 0, the natural reference point. Second, a prediction that is wildly wrong on the high-weight last row is clipped to skill = 0; the metric does not pay attention to how much worse than zero the model is. Third, a small-error model on the four low-weight rows but a slightly larger error on the high-weight row could already drop the skill noticeably, because the high-weight row dominates the numerator.
+
+\subsection{Comparison against standard regression metrics}
+
+\Cref{tab:metric_comparison} contrasts the weighted skill score with the metrics most often reported in regression problems on the same five-row toy example.
+
+\begin{table}[h]
+\centering
+\caption{Behaviour of standard metrics versus the weighted skill score on the same toy panel.}
+\label{tab:metric_comparison}
+\begin{tabular}{lrrrr}
+\toprule
+Prediction $\hat y$ & RMSE & weighted RMSE & $R^2$ & Skill \\
+\midrule
+$(1,2,3,4,5)$           & $0.000$ & $0.000$ & $1.000$ & $1.000$ \\
+$(0,0,0,0,0)$           & $3.317$ & $4.472$ & $-0.367$ & $0.000$ \\
+$(0.9,1.9,3.1,4.0,4.9)$ & $0.114$ & $0.097$ & $0.999$  & $0.999$ \\
+$(2,4,6,8,-5)$          & $5.200$ & $8.510$ & $-3.36$  & $0.000$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The skill score and weighted RMSE rank the four predictions in the same order, but they differ in two important ways. First, skill is bounded in $[0,1]$, which is easier to read on a competition leaderboard. Second, $R^2$ uses the centred denominator $\sum w_i (y_i - \bar y)^2$ while skill uses the non-centred denominator $\sum w_i y_i^2$; this makes skill more meaningful when the target is genuinely centred near zero (as it is in our panel) and avoids the embarrassing situation where $R^2$ goes negative for predictions worse than the constant mean.
+
+\subsection{Why a competition organiser would design this metric}
+
+Five properties of \cref{eq:skill} explain why a metric of this shape is sensible for a public-leaderboard hedge-fund forecasting task:
+
+\begin{enumerate}
+  \item \emph{Reference-relative}. Different series in a hedge-fund panel can have wildly different volatilities. Plain RMSE will always rank a model better on a low-volatility series than on a high-volatility series, even when the relative quality is identical. Dividing the squared error by the weighted target energy neutralises this scale effect, so a 1\% relative error on a 0.0001-scale series and a 1\% relative error on a 100-scale series contribute proportionally.
+  \item \emph{Beat-the-zero baseline}. Predicting $\hat y = 0$ identically gives skill = 0. Any positive skill therefore signals ``the model has learned something''. This threshold is a more honest baseline than ``beat the naive lag-1 forecast'', which can be hard to define cleanly across heterogeneous series.
+  \item \emph{Bounded $[0,1]$ via the clip and square root}. A bounded metric is leaderboard-friendly: scores compress into a familiar 0--1 range, making rankings easy to display and small differences easy to detect. The clip in particular makes the metric robust to an occasional catastrophic prediction, so competitors are not penalised disproportionately for one outlier row.
+  \item \emph{Sample-weighted}. The weights let the organiser encode importance. In our panel, the weights are concentrated on a small number of rows, plausibly reflecting financial significance such as assets under management or notional traded size. A model that performs well on rows that ``matter financially'' is valued more than one that performs equally well across all rows.
+  \item \emph{Interpretable on the correlation scale}. The square root puts the score on roughly the same scale as a Pearson correlation, which most readers find intuitive. Without the square root, mid-range skills would compress; with it, the values 0.3, 0.5, 0.7, 0.9 carry the rough qualitative meaning that practitioners assign to correlations.
+\end{enumerate}
+
+\subsection{Practical consequences for this project}
+
+\Cref{eq:skill} is implemented once in the shared utility \texttt{cf.metrics.weighted\_skill\_score} and used by every later notebook for both model selection and final scoring. The function \texttt{cf.metrics.bootstrap\_skill} returns 95\% confidence intervals by row resampling; we report bootstrap intervals alongside every leaderboard number to avoid declaring winners that are within sampling noise of each other.
+
+Two structural observations carry through to every subsequent modelling decision:
+
+\begin{itemize}
+  \item \textbf{High-weight rows decide the leaderboard.} Because approximately 64\% of weight sits in the top 1\% of rows (\cref{sec:weight_dist}), the score is essentially a measure of how well the model predicts those few rows. We must therefore train with sample weights, not just evaluate with them.
+  \item \textbf{Plain RMSE will lie.} A model that improves average behaviour at the cost of a small degradation on a high-weight row can lose to a simpler model. We never report unweighted RMSE as a primary headline number.
+\end{itemize}

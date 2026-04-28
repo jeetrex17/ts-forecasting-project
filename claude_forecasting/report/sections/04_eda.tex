@@ -1,0 +1,340 @@
+\section{Dataset and Exploratory Analysis}
+\label{sec:eda}
+
+This section reports the exploratory analysis of the panel before any modelling. The aim is twofold. First, to establish the basic statistical shape of the data so that later modelling choices can be motivated rather than guessed. Second, to surface three structural findings about the panel --- multi-horizon coupling, the cumulation hypothesis, and per-horizon weight dominance --- that the midway report did not document but that materially change the modelling space. All numerical results below are produced by notebook \texttt{00\_data\_structure.ipynb} and the corresponding figures are saved as both PNG and PDF assets.
+
+\subsection{Schema and panel structure}
+\label{sec:eda:schema}
+
+The training panel contains 5{,}337{,}414 rows, organised by 23 distinct \texttt{code} values, 180 distinct \texttt{sub\_code} values, and 5 \texttt{sub\_category} values, across 4 horizons. The integer time index $\mathtt{ts\_index}$ runs over the contiguous range $[1, 3601]$. The test partition continues from $\mathtt{ts\_index} = 3602$ to 4376 with 1{,}447{,}107 rows. Treating the 4-tuple $(\mathtt{code},\mathtt{sub\_code},\mathtt{sub\_category},\mathtt{horizon})$ as the natural series identifier yields 36{,}923 distinct series.
+
+\subsection{Train versus test comparability}
+\label{sec:eda:traintest}
+
+The only columns present in train but not in test are $y_{\text{target}}$ and $\mathtt{weight}$, which is exactly what we expect (test carries no labels or evaluation weights). Every category level seen in test exists in train, so there is no cold-start schema issue. The sub-code support narrows from 180 distinct values in train to 47 in test, which is a coverage shift rather than a schema mismatch. We must respect this when interpreting per-sub-code conclusions, but it does not require any change to the core modelling setup.
+
+\subsection{Missing values}
+\label{sec:eda:missing}
+
+Missingness is computed on a 500{,}000-row stratified sample to keep memory in check. Of the 86 anonymised features, 48 contain at least one missing value, but the maximum missing rate across all columns is approximately 12.5\%. \Cref{fig:missingness} shows the top fifteen offenders.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\linewidth]{00_missingness_top15}
+\caption{Top fifteen features by missingness, on a 500{,}000-row stratified sample of train. The maximum missing rate is approximately 12.5\%, low enough that median imputation inside a fold is sufficient and there is no need to drop columns or use complex imputers.}
+\label{fig:missingness}
+\end{figure}
+
+\paragraph{Reading.} The missing-rate magnitudes are non-trivial but bounded. A simple within-fold median imputation handles every column without leakage. We therefore do not develop a separate imputation strategy.
+
+\subsection{Target distribution}
+\label{sec:eda:target}
+
+The target $y_{\text{target}}$ is centred very close to zero (median $-0.0006$, IQR $\pm 0.05$), but has extremely heavy tails. The 1\% and 99\% quantiles sit at approximately $-82.8$ and $+62.9$ respectively, while the full range runs from approximately $-2202$ to $+2314$.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{00_target_distribution}
+\caption{Raw target distribution (left) and the same distribution clipped to $[-10, 10]$ (right). Most of the mass concentrates near zero, with rare extreme tails up to the order of $\pm 2200$.}
+\label{fig:target_dist}
+\end{figure}
+
+\paragraph{Reading.} A target with this shape disqualifies plain unweighted MSE as a sensible loss for any model that has to be robust across the full panel. The tails are real outcomes, not data corruption, so we cannot just clip them. The combination of heavy tails and the weighting scheme (next subsection) is the central source of methodological care in this project.
+
+\subsection{Weight distribution and metric concentration}
+\label{sec:weight_dist}
+
+The competition weights are extraordinarily skewed. The median weight is $1{,}699$, while the maximum is $1.39 \times 10^{13}$. \Cref{fig:weight_dist} shows the weight distribution clipped at the 99th percentile (left) and the cumulative-share Lorenz-style curve (right). The top 1\% of rows carry 64.2\% of total weight; the top 5\% carry 92.6\%; the top 10\% carry 98.3\%.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{00_weight_distribution}
+\caption{Weight distribution clipped at the 99th percentile (left) and cumulative share of total weight ranked by weight (right). Approximately 64\% of total weight is concentrated in the top 1\% of rows; 92\% in the top 5\%.}
+\label{fig:weight_dist}
+\end{figure}
+
+\paragraph{Reading.} Any evaluation that ignores weights describes a different competition. Plain RMSE, unweighted MAE, and naive cross-validation can recommend the wrong model family. The weighted skill score formalised in \cref{sec:skill} is the only metric we report as a headline. Operationally, a model that accurately predicts the top one percent of rows has more leverage on the leaderboard than a model that is uniformly mediocre across all rows.
+
+\subsection{Series coverage and split feasibility}
+\label{sec:eda:coverage}
+
+Not every series has enough history to support time-based validation. \Cref{fig:series_length} shows the distribution of per-series lengths. Out of 36{,}923 distinct series, only 1{,}930 (approximately 5\%) cleanly cross the train/validation cutoff at $\mathtt{ts\_index} = 2880$. Many series end before the cutoff, contributing zero validation rows.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\linewidth]{00_series_length_distribution}
+\caption{Distribution of per-series lengths. Most series are short, and the tail of long series carries the structural signal that classical fits can exploit.}
+\label{fig:series_length}
+\end{figure}
+
+\paragraph{Reading.} Per-series classical fitting is feasible only on the eligible subset (cross the cutoff and have at least 120 training rows). Global pooled models are not constrained by per-series length and can use every row whose $\mathtt{ts\_index}$ falls inside the relevant split. This asymmetry is one of the reasons the comparison between local classical models and global ML models is not perfectly apples-to-apples.
+
+\subsection{Representative-series selection}
+\label{sec:eda:repseries}
+
+For every per-series figure in this project we plot the same four series. They are selected with explicit reasons rather than at random, in order to span four distinct stress regimes: long history, large weight, high variability, and near-flat behaviour. \Cref{tab:representative} lists the four chosen series. They match the selection used in the midway report, preserving visual continuity.
+
+\begin{table}[h]
+\centering
+\caption{Four representative series chosen for per-series studies. Each series probes a different regime of the panel.}
+\label{tab:representative}
+\begin{tabular}{l l l c}
+\toprule
+Reason & Series key (code/sub\_code) & Horizon & Length \\
+\midrule
+Longest history       & X9BZ68VQ / OYJGNSQK / DPPUO5X2 & 1  & 212 \\
+Highest total weight  & SJZP0OVU / OYJGNSQK / NQ58FVQM & 25 & 156 \\
+Most volatile         & W4S29LF4 / KL66VIS3 / PHHHVYZI & 25 & 162 \\
+Most stable           & SJZP0OVU / OYJGNSQK / NQ58FVQM & 1  & 170 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\Cref{fig:rep_series_raw} shows the raw $y_{\text{target}}$ trajectory of each chosen series with the train/validation cutoff marked. The four panels look profoundly different: the most-volatile series swings between $-500$ and $+500$, while the most-stable series occupies a numerical range narrower than $0.001$.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{00_representative_series_raw}
+\caption{Raw $y_{\text{target}}$ for the four chosen representative series. The dashed vertical line marks $\mathtt{ts\_index} = 2880$, the train/validation cutoff. The four panels span the four stress regimes that any model has to handle.}
+\label{fig:rep_series_raw}
+\end{figure}
+
+\paragraph{Reading.} The four panels make it visually clear that a one-size-fits-all model will struggle. The most-stable series is essentially numerical noise; the most-volatile series has obvious cyclical structure. The pattern of forecast performance across these four panels is one of the cleanest diagnostics for whether a given model family is generalising or just fitting one regime well.
+
+\subsection{Stationarity diagnostics}
+\label{sec:eda:stationarity}
+
+Classical ARIMA-family forecasting assumes stationarity, or stationarity-after-differencing. We therefore run the Augmented Dickey--Fuller test on a stratified sample of 200 eligible series. The ADF test takes the null hypothesis that the series has a unit root (non-stationary); we reject at the 5\% level when the $p$-value is below $0.05$. \Cref{fig:adf} summarises the results.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{00_adf_results}
+\caption{ADF results on 200 sampled eligible series. Left: $p$-value distribution with the $0.05$ threshold marked. Centre: fraction stationary by horizon. Right: fraction stationary by code.}
+\label{fig:adf}
+\end{figure}
+
+Approximately 70.5\% of sampled series reject the unit-root null at the 5\% level. The picture is more nuanced when broken down by horizon: H1 series are more often stationary than longer-horizon cumulative series, which is consistent with the multi-horizon coupling we will document in \cref{sec:cumulation}.
+
+ADF and KPSS have opposite null hypotheses, so running both gives a more honest joint verdict: ADF takes non-stationarity as the null, while KPSS takes stationarity as the null. We classify a series as \emph{stationary} when ADF rejects and KPSS does not, as \emph{unit root} when ADF fails to reject and KPSS rejects, and as \emph{inconclusive} otherwise. \Cref{fig:adf_kpss} reports the joint distribution.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.7\linewidth]{00_adf_kpss_joint}
+\caption{Joint ADF $+$ KPSS verdict on 200 sampled series. Stationary 64.0\%, inconclusive 29.5\%, unit root 6.5\%.}
+\label{fig:adf_kpss}
+\end{figure}
+
+The stationary share dominates, but the inconclusive bucket is large enough that one-size-fits-all claims about raw levels would be unsafe. We need a repair step (differencing) for the unit-root and inconclusive cases.
+
+\Cref{fig:differencing} re-runs the ADF test on the first-differenced series. The stationary share rises from 70.5\% on raw levels to 98.5\% after differencing.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.7\linewidth]{00_first_differencing_share}
+\caption{ADF stationary share at the 5\% level: levels (left, $d=0$) versus first differences (right, $d=1$). Differencing pushes the share to nearly 100\%.}
+\label{fig:differencing}
+\end{figure}
+
+\paragraph{Reading.} The diagnostic chain motivates ARIMA with $d=1$ as a sensible default for the classical study, and it explains why differenced features are worth engineering for the global ML models. The fact that 98.5\% of series become stationary after a single difference also bears on the cumulation finding in \cref{sec:cumulation}: differencing the higher-horizon target partially inverts the rolling-sum construction back into the H1 process.
+
+\subsection{Visual stationarity --- rolling statistics}
+\label{sec:eda:rolling}
+
+Statistical tests can disagree on short or noisy series. A rolling plot is the simplest visual check: a flat rolling mean indicates constant-mean behaviour; a flat rolling standard deviation indicates constant variance. \Cref{fig:rolling_raw} shows the four chosen series, raw, with a 24-step rolling mean and rolling std overlaid.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{00_rolling_raw}
+\caption{Rolling mean and rolling standard deviation (window = 24) on the raw four representative series. The most-volatile series shows clear drift in level and bulging variance.}
+\label{fig:rolling_raw}
+\end{figure}
+
+\Cref{fig:rolling_diff} repeats the same diagnostic on the first-differenced versions of the same series. The rolling means hug zero and the rolling standard deviations flatten, visually confirming the statistical jump in the previous subsection.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{00_rolling_differenced}
+\caption{Rolling mean and rolling standard deviation (window = 24) on the first-differenced four representative series. The mean now oscillates closer to zero and the variance becomes more stable.}
+\label{fig:rolling_diff}
+\end{figure}
+
+\paragraph{Reading.} The visual evidence agrees with the formal tests: differenced series behave more like white noise, raw series often drift. This is exactly the visual behaviour we want before fitting a differenced classical model.
+
+\subsection{Lag structure --- ACF and PACF}
+\label{sec:eda:acf}
+
+The autocorrelation function (ACF) shows correlation between the series and lagged copies of itself; the partial autocorrelation function (PACF) isolates each lag's direct contribution after controlling for shorter lags. A sharp PACF cutoff suggests an autoregressive order; a sharp ACF cutoff suggests a moving-average order. \Cref{fig:acf_anchor} shows the ACF and PACF of the longest-history anchor series.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{00_acf_pacf_anchor}
+\caption{ACF (left) and PACF (right) of the longest-history anchor series, lags 0--40. The shaded band shows the 95\% confidence interval under white noise.}
+\label{fig:acf_anchor}
+\end{figure}
+
+A single series can mislead. We aggregate the absolute ACF and PACF across all 200 sampled series in \cref{fig:acf_panel}. The panel-level view reveals which lags are reliably informative across the panel rather than artefacts of a single trajectory.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{00_acf_pacf_panel}
+\caption{Panel-level mean $|\text{ACF}|$ (left) and mean $|\text{PACF}|$ (right) across 200 sampled eligible series. Persistent low-order lags dominate; higher lags decay quickly. There are no clean seasonal bumps.}
+\label{fig:acf_panel}
+\end{figure}
+
+\paragraph{Reading.} The panel ACF/PACF tell us two things. First, short-memory dynamics are the dominant signal: lags 1--3 carry the bulk of the structure, with rapid decay thereafter. Second, the absence of seasonal bumps argues against building the modelling around seasonality. The lag feature set we engineer for the global ML models therefore prioritises lags 1, 2, 3, 5, 10 and skips seasonal indicators.
+
+\subsection{STL decomposition}
+\label{sec:eda:stl}
+
+Seasonal-Trend decomposition using LOESS (STL) splits a series into trend, seasonal, and residual components. We apply STL to the longest-history anchor with a period of 24 and observe the relative amplitudes of the three components. \Cref{fig:stl} shows the result.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\linewidth]{00_stl_anchor}
+\caption{STL decomposition of the longest-history anchor with period 24. The trend component captures slow drift; the seasonal amplitude is small relative to residual standard deviation.}
+\label{fig:stl}
+\end{figure}
+
+\paragraph{Reading.} The trend component captures the slow level drift that ADF picked up, but the seasonal amplitude is small relative to residual standard deviation. Combined with the absence of seasonal bumps in the panel ACF, this confirms that strong periodic structure is not a property of this panel. Modelling effort should go into short-memory dynamics rather than seasonal indicators.
+
+\subsection{Feature audit}
+\label{sec:eda:feature_audit}
+
+The 86 \texttt{feature\_*} columns are anonymised and we cannot interpret them by name. We can, however, audit them statistically. On a 200{,}000-row stratified sample we compute Pearson correlation between each feature and $y_{\text{target}}$, then rank features by absolute correlation. \Cref{fig:feature_corr} shows the top twenty.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\linewidth]{00_feature_corr_top20}
+\caption{Top twenty features by absolute correlation with $y_{\text{target}}$, computed on a 200{,}000-row stratified sample. Green bars are positive correlations, red bars are negative.}
+\label{fig:feature_corr}
+\end{figure}
+
+\paragraph{Reading.} The single largest absolute correlation is below 0.10. No single feature predicts the target well on its own. This rules out a univariate model and warns against placing too much weight on any one feature in importance plots, but it does not mean the features are useless: gradient-boosted trees and other non-linear ensembles can combine many weak features into a meaningful signal.
+
+\subsection{Feature multicollinearity}
+\label{sec:eda:feature_heatmap}
+
+If the top features are highly correlated with each other, their importance ranking is ambiguous --- they may share signal rather than each contributing independently. \Cref{fig:feature_heatmap} shows a correlation heatmap among the top twenty features and the target.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{00_feature_corr_heatmap}
+\caption{Correlation heatmap of the top twenty features (by $|\text{corr}|$ with $y_{\text{target}}$) plus the target itself. Strong block structure indicates feature--feature redundancy.}
+\label{fig:feature_heatmap}
+\end{figure}
+
+\paragraph{Reading.} The heatmap shows three things. The $y_{\text{target}}$ row and column confirm the modest marginal signal seen in the previous subsection. Strong feature--feature correlation blocks reveal real redundancy: multiple features carry overlapping information. Naive feature-importance rankings should therefore be read with collinearity in mind. We will not pretend that a feature ranked first in importance is uniquely responsible for the model's behaviour.
+
+\subsection{Cross-series relationships}
+\label{sec:eda:cross_series}
+
+Within the same \texttt{code}, different sub-codes might share signal. If they do, global pooled models can borrow strength across related sub-codes; per-series local models cannot. We compute lagged cross-correlations between random pairs of sub-codes within the same \texttt{(code, horizon)} group. \Cref{fig:cross_series} shows six representative pairs.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{00_cross_series}
+\caption{Lagged cross-correlation between random sub-code pairs sharing the same code and horizon. A peak away from lag 0 means one sub-code leads or lags the other.}
+\label{fig:cross_series}
+\end{figure}
+
+\paragraph{Reading.} Several pairs show clear peaks away from lag 0, indicating real lead/lag relationships within a code. This is exactly the structure that global models exploit: training a single model on every sub-code lets the model learn the shared component, while per-series fitting wastes that signal entirely. The cross-series evidence is one of our strongest a priori arguments for choosing a global ML approach over the per-series classical approach pursued in the midway.
+
+\subsection{Multi-horizon coupling}
+\label{sec:multihorizon}
+
+The midway report treated $(\mathtt{code},\mathtt{sub\_code},\mathtt{sub\_category},\mathtt{horizon})$ as the natural series identifier and fit each horizon independently. The exploratory analysis in this project shows that the four horizons of the same triple are not independent. For approximately 1.21 million distinct $(\mathtt{code},\mathtt{sub\_code},\mathtt{sub\_category},\mathtt{ts\_index})$ tuples, all four horizons are simultaneously present.
+
+A second consequence of multi-horizon coupling is per-horizon target scaling. \Cref{fig:horizon_scale} shows the target standard deviation and maximum row weight by horizon.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{00_horizon_scale_and_weight}
+\caption{Per-horizon target standard deviation (left) and maximum row weight on a logarithmic scale (right). Target scale grows by a factor of approximately 4.5 from H1 to H25. Maximum weight is highest at H3.}
+\label{fig:horizon_scale}
+\end{figure}
+
+The target standard deviation rises from approximately 11.7 at H1 to 52.8 at H25, a factor of $4.5$.
+
+\paragraph{Reading.} This finding has direct modelling consequences. A single model trained on horizons pooled into one DataFrame, without horizon-aware standardisation, will be dominated by H25 magnitudes and predict at H25 scale. Predictions at H25 scale evaluated against H1 targets will overshoot by a factor of roughly 4.5, producing catastrophically large weighted RMSE on H1 rows. This is exactly the failure mode observed in earlier ML artefacts attached to the project --- the original XGBoost run reported a weighted RMSE more than two hundred times the naive baseline, consistent with a per-horizon-scale leak. The remedy is straightforward: train one model per horizon, or normalise the target by horizon before training.
+
+\subsection{Cumulation hypothesis}
+\label{sec:cumulation}
+
+Given the multi-horizon coupling above, the natural hypothesis about how the four horizons relate to each other is that the target at horizon $k$ is a cumulative aggregate of the H1 target over the next $k$ steps:
+\begin{equation}
+\label{eq:cumulation}
+  y^{H_k}_{t} \;\approx\; \sum_{i=0}^{k-1} y^{H_1}_{t+i}.
+\end{equation}
+We test \cref{eq:cumulation} on a stratified sample of 500 triples that have all four horizons and at least 60 H1 rows. For each triple we pivot the data so that horizons sit on columns, compute the rolling sum of the H1 series over the appropriate window, and report the Pearson correlation between $y^{H_k}_t$ and that rolling sum. \Cref{fig:cumulation} shows the distribution of correlations and the median ratio.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{00_cumulation_hypothesis}
+\caption{Test of the cumulation hypothesis on 500 stratified triples. Left: distribution of Pearson correlations between $y^{H_k}_t$ and the rolling sum of $y^{H_1}$ over $k$ steps, for $k \in \{3, 10, 25\}$. Right: distribution of the per-triple median ratio $y^{H_k}_t / \sum y^{H_1}$. Higher and tighter is better.}
+\label{fig:cumulation}
+\end{figure}
+
+\Cref{tab:cumulation} reports the summary statistics. At $k=3$ the median Pearson correlation is 0.96 and the median ratio is 1.00, indicating essentially exact aggregation. The relation is slightly noisier at $k=10$ and $k=25$, with median ratios of 0.95 and 0.91, but still clearly dominant.
+
+\begin{table}[h]
+\centering
+\caption{Cumulation hypothesis test summary on 500 triples.}
+\label{tab:cumulation}
+\begin{tabular}{c r r r r}
+\toprule
+$k$ & $n$ triples & mean corr & median corr & median ratio \\
+\midrule
+3   & 500 & 0.92 & 0.96 & 1.00 \\
+10  & 500 & 0.86 & 0.94 & 0.95 \\
+25  & 500 & 0.78 & 0.91 & 0.91 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Reading.} Two consequences for the modelling work that follows. First, fit-H1-and-aggregate becomes a viable, possibly superior strategy to fitting per-horizon models independently: a single H1 model gives H3, H10, and H25 forecasts for free, and the aggregation is mathematically forced by the data construction. We test this in a dedicated H1-aggregation experiment in a later notebook. Second, differencing operations on $y^{H_{25}}$ partially recover the $y^{H_1}$ process, which explains why ARIMA with $d=1$ wins the most-volatile H25 series in the midway classical study: differencing inverts the cumulation. The midway interpretation that ARIMA was capturing a difficult pattern is partly correct; it was also undoing the cumulative construction.
+
+\subsection{Per-horizon weight dominance}
+\label{sec:weight_per_horizon}
+
+The weight distribution analysis in \cref{sec:weight_dist} was panel-wide. Because $\mathtt{weight}$ and $\mathtt{horizon}$ are correlated, the rows that drive the weighted skill score may not be evenly distributed across horizons. \Cref{fig:weight_horizon} reports the share of total panel weight per horizon and the share of weight within the top 1\% of all weight mass.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{00_weight_by_horizon}
+\caption{Per-horizon weight breakdown. Left: each horizon's share of total panel weight. Right: share of the top 1\% of weight mass by horizon. H3 dominates both views.}
+\label{fig:weight_horizon}
+\end{figure}
+
+The headline numbers are striking. The maximum panel weight ($1.39 \times 10^{13}$) is at H3, not H1. H3 alone holds 37.4\% of total panel weight and 43.6\% of the top-1\% weight mass; H1 holds 25.4\%, H10 holds 14.3\%, and H25 holds 16.8\%.
+
+\paragraph{Reading.} A model that predicts H3 well on the small set of high-weight rows will tend to win the leaderboard regardless of how it performs on the other horizons. This was missed in the midway report. The practical consequence is that we report H3 weighted skill as a separate headline number alongside the panel-wide score, and we track H3 performance carefully when comparing models.
+
+\subsection{EDA-driven modelling implications}
+\label{sec:eda:implications}
+
+The EDA constrains modelling along several axes. \Cref{tab:implications} summarises the constraints and the corresponding decisions for later notebooks.
+
+\begin{table}[h]
+\centering
+\caption{From EDA findings to modelling decisions.}
+\label{tab:implications}
+\begin{tabularx}{\linewidth}{lX}
+\toprule
+\textbf{EDA finding} & \textbf{Modelling decision} \\
+\midrule
+Test is a strict temporal suffix & Validation must be chronological. No random CV folds. \\
+Top 1\% of rows hold $\sim 64$\% of weight & Sample-weight every loss; never report unweighted RMSE as headline. \\
+Heavy target tails ($\pm 2200$) with IQR $\pm 0.05$ & Robust losses (Huber, quantile) for any model on raw $y_{\text{target}}$. \\
+70\% raw stationary, 99\% after differencing & ARIMA with $d=1$ default; differenced features for ML. \\
+Persistent low-order ACF/PACF; weak STL seasonality & Lag features 1, 2, 3, 5, 10; no seasonal indicators. \\
+Cross-series correlation within codes & Global pooled models over per-series fits. \\
+Multi-horizon coupling and cumulation & Fit-H1-and-aggregate as a candidate model class. Per-horizon training as a baseline. \\
+Per-horizon target scaling differs by $4.5\times$ & One model per horizon, or horizon-aware target standardisation. \\
+H3 dominates top-1\% weight mass & Report H3 weighted skill as a separate headline. \\
+Max $|$corr$|$ across features $< 0.10$ & Gradient-boosted ensembles preferred over linear models on raw features. \\
+Strong feature--feature correlation in top features & Read importance plots with collinearity in mind. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+These constraints shape every modelling chapter that follows. The classical baselines (notebook 01) honour the chronological cutoff and the four representative series. The global LightGBM models (notebook 02) train per horizon with sample weights. The H1-aggregation experiment (notebook 03) operationalises the cumulation hypothesis. The probabilistic forecasting work (notebook 04) addresses the heavy tails and weak per-feature signal directly. The ensembles (notebook 05) fit weights on a meta slice that respects chronology. The final comparison (notebook 06) reports both panel-wide and H3-specific weighted skill scores with bootstrap intervals.
