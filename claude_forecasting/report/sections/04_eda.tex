@@ -286,29 +286,4 @@ The headline numbers are striking. The maximum panel weight ($1.39 \times 10^{13
 \subsection{EDA-driven modelling implications}
 \label{sec:eda:implications}
 
-The EDA constrains modelling along several axes. \Cref{tab:implications} summarises the constraints and the corresponding decisions for later notebooks.
-
-\begin{table}[h]
-\centering
-\caption{From EDA findings to modelling decisions.}
-\label{tab:implications}
-\begin{tabularx}{\linewidth}{lX}
-\toprule
-\textbf{EDA finding} & \textbf{Modelling decision} \\
-\midrule
-Test is a strict temporal suffix & Validation must be chronological. No random CV folds. \\
-Top 1\% of rows hold $\sim 64$\% of weight & Sample-weight every loss; never report unweighted RMSE as headline. \\
-Heavy target tails ($\pm 2200$) with IQR $\pm 0.05$ & Robust losses (Huber, quantile) for any model on raw $y_{\text{target}}$. \\
-70\% raw stationary, 99\% after differencing & ARIMA with $d=1$ default; differenced features for ML. \\
-Persistent low-order ACF/PACF; weak STL seasonality & Lag features 1, 2, 3, 5, 10; no seasonal indicators. \\
-Cross-series correlation within codes & Global pooled models over per-series fits. \\
-Multi-horizon coupling and cumulation & Fit-H1-and-aggregate as a candidate model class. Per-horizon training as a baseline. \\
-Per-horizon target scaling differs by $4.5\times$ & One model per horizon, or horizon-aware target standardisation. \\
-H3 dominates top-1\% weight mass & Report H3 weighted skill as a separate headline. \\
-Max $|$corr$|$ across features $< 0.10$ & Gradient-boosted ensembles preferred over linear models on raw features. \\
-Strong feature--feature correlation in top features & Read importance plots with collinearity in mind. \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-These constraints shape every modelling chapter that follows. The classical baselines (notebook 01) honour the chronological cutoff and the four representative series. The global LightGBM models (notebook 02) train per horizon with sample weights. The H1-aggregation experiment (notebook 03) operationalises the cumulation hypothesis. The probabilistic forecasting work (notebook 04) addresses the heavy tails and weak per-feature signal directly. The ensembles (notebook 05) fit weights on a meta slice that respects chronology. The final comparison (notebook 06) reports both panel-wide and H3-specific weighted skill scores with bootstrap intervals.
+The EDA findings above constrain every modelling chapter that follows. The classical baselines (notebook 01) honour the chronological cutoff and use the four representative series. The global LightGBM models (notebook 02) train per horizon with sample weights, motivated by the per-horizon target scaling and H3 weight dominance. The H1-aggregation experiment (notebook 03) operationalises the cumulation hypothesis. The probabilistic forecasting work (notebook 04) addresses the heavy tails and weak per-feature signal directly through quantile regression and conformal calibration. The ensembles (notebook 05) fit weights on a meta slice that respects chronology. The final comparison (notebook 06) reports both panel-wide and H3-specific weighted skill scores with bootstrap intervals.
