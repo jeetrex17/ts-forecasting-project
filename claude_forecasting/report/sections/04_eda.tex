@@ -137,7 +137,16 @@ The stationary share dominates, but the inconclusive bucket is large enough that
 \subsection{Visual stationarity --- rolling statistics}
 \label{sec:eda:rolling}
 
-Statistical tests can disagree on short or noisy series, so a rolling-window view is a useful visual check. After first differencing, the rolling means of the four representative series hug zero and their rolling standard deviations flatten across the cutoff (\cref{fig:rolling_diff}) --- visually confirming the statistical jump from the previous subsection. The corresponding raw plots, omitted here for brevity, show the opposite: drifting means and bulging variances on the most-volatile series.
+Statistical tests can disagree on short or noisy series, so a rolling-window view is a useful visual check. \Cref{fig:rolling_raw} shows a 24-step rolling mean and rolling standard deviation on the raw four representative series. The most-volatile series shows clear drift in level and bulging variance; the longest-history series drifts upward; the high-weight and most-stable series occupy near-flat ranges where the rolling mean barely moves.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{00_rolling_raw}
+\caption{Rolling mean and rolling standard deviation (window = 24) on the raw four representative series. The most-volatile series shows clear drift in level and bulging variance.}
+\label{fig:rolling_raw}
+\end{figure}
+
+\Cref{fig:rolling_diff} repeats the same diagnostic on the first-differenced versions of the same series. The rolling means now hug zero and the rolling standard deviations flatten across the cutoff, visually confirming the statistical jump from the previous subsection.
 
 \begin{figure}[h]
 \centering
