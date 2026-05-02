@@ -3,15 +3,12 @@
 
 This section reports the exploratory analysis of the panel before any modelling. The aim is twofold. First, to establish the basic statistical shape of the data so that later modelling choices can be motivated rather than guessed. Second, to surface three structural findings about the panel --- multi-horizon coupling, the cumulation hypothesis, and per-horizon weight dominance --- that the midway report did not document but that materially change the modelling space. All numerical results below are produced by notebook \texttt{00\_data\_structure.ipynb} and the corresponding figures are saved as both PNG and PDF assets.
 
-\subsection{Schema and panel structure}
+\subsection{Schema, panel scale, and train--test comparability}
 \label{sec:eda:schema}
 
-The training panel contains 5{,}337{,}414 rows, organised by 23 distinct \texttt{code} values, 180 distinct \texttt{sub\_code} values, and 5 \texttt{sub\_category} values, across 4 horizons. The integer time index $\mathtt{ts\_index}$ runs over the contiguous range $[1, 3601]$. The test partition continues from $\mathtt{ts\_index} = 3602$ to 4376 with 1{,}447{,}107 rows. Treating the 4-tuple $(\mathtt{code},\mathtt{sub\_code},\mathtt{sub\_category},\mathtt{horizon})$ as the natural series identifier yields 36{,}923 distinct series.
+The training panel contains 5{,}337{,}414 rows, organised by 23 distinct \texttt{code} values, 180 distinct \texttt{sub\_code} values, and 5 \texttt{sub\_category} values across 4 horizons. The integer time index $\mathtt{ts\_index}$ runs over the contiguous range $[1, 3601]$. The test partition continues from $\mathtt{ts\_index} = 3602$ to 4376 with 1{,}447{,}107 rows, so test is a strict temporal suffix of train. Treating the 4-tuple $(\mathtt{code},\mathtt{sub\_code},\mathtt{sub\_category},\mathtt{horizon})$ as the natural series identifier yields 36{,}923 distinct series.
 
-\subsection{Train versus test comparability}
-\label{sec:eda:traintest}
-
-The only columns present in train but not in test are $y_{\text{target}}$ and $\mathtt{weight}$, which is exactly what we expect (test carries no labels or evaluation weights). Every category level seen in test exists in train, so there is no cold-start schema issue. The sub-code support narrows from 180 distinct values in train to 47 in test, which is a coverage shift rather than a schema mismatch. We must respect this when interpreting per-sub-code conclusions, but it does not require any change to the core modelling setup.
+The only columns present in train but not in test are $y_{\text{target}}$ and $\mathtt{weight}$, as expected. Every category level seen in test exists in train, so there is no cold-start schema issue. The sub-code support narrows from 180 in train to 47 in test --- a coverage shift rather than a schema mismatch.
 
 \subsection{Missing values}
 \label{sec:eda:missing}
@@ -25,7 +22,7 @@ Missingness is computed on a 500{,}000-row stratified sample to keep memory in c
 \label{fig:missingness}
 \end{figure}
 
-\paragraph{Reading.} The missing-rate magnitudes are non-trivial but bounded. A simple within-fold median imputation handles every column without leakage. We therefore do not develop a separate imputation strategy.
+\paragraph{Reading.} Missing rates are bounded; within-fold median imputation suffices. No separate imputation strategy is developed.
 
 \subsection{Target distribution}
 \label{sec:eda:target}
@@ -39,7 +36,7 @@ The target $y_{\text{target}}$ is centred very close to zero (median $-0.0006$, 
 \label{fig:target_dist}
 \end{figure}
 
-\paragraph{Reading.} A target with this shape disqualifies plain unweighted MSE as a sensible loss for any model that has to be robust across the full panel. The tails are real outcomes, not data corruption, so we cannot just clip them. The combination of heavy tails and the weighting scheme (next subsection) is the central source of methodological care in this project.
+\paragraph{Reading.} The shape disqualifies plain unweighted MSE as a sensible loss. Tails are real outcomes, not corruption, so we cannot simply clip them; combined with the weighting scheme below, this is the central methodological constraint.
 
 \subsection{Weight distribution and metric concentration}
 \label{sec:weight_dist}
@@ -53,7 +50,7 @@ The competition weights are extraordinarily skewed. The median weight is $1{,}69
 \label{fig:weight_dist}
 \end{figure}
 
-\paragraph{Reading.} Any evaluation that ignores weights describes a different competition. Plain RMSE, unweighted MAE, and naive cross-validation can recommend the wrong model family. The weighted skill score formalised in \cref{sec:skill} is the only metric we report as a headline. Operationally, a model that accurately predicts the top one percent of rows has more leverage on the leaderboard than a model that is uniformly mediocre across all rows.
+\paragraph{Reading.} Unweighted evaluation describes a different competition. The weighted skill score (\cref{sec:skill}) is our only headline metric, and a model that accurately predicts the top one percent of rows has more leverage on the leaderboard than a uniformly mediocre one.
 
 \subsection{Series coverage and split feasibility}
 \label{sec:eda:coverage}
@@ -67,7 +64,7 @@ Not every series has enough history to support time-based validation. \Cref{fig:
 \label{fig:series_length}
 \end{figure}
 
-\paragraph{Reading.} Per-series classical fitting is feasible only on the eligible subset (cross the cutoff and have at least 120 training rows). Global pooled models are not constrained by per-series length and can use every row whose $\mathtt{ts\_index}$ falls inside the relevant split. This asymmetry is one of the reasons the comparison between local classical models and global ML models is not perfectly apples-to-apples.
+\paragraph{Reading.} Per-series classical fitting is feasible only on the eligible subset (cross the cutoff with at least 120 training rows). Global pooled models are not length-constrained --- one reason the comparison between local classical and global ML approaches is not perfectly apples-to-apples.
 
 \subsection{Representative-series selection}
 \label{sec:eda:repseries}
@@ -99,7 +96,7 @@ Most stable           & SJZP0OVU / OYJGNSQK / NQ58FVQM & 1  & 170 \\
 \label{fig:rep_series_raw}
 \end{figure}
 
-\paragraph{Reading.} The four panels make it visually clear that a one-size-fits-all model will struggle. The most-stable series is essentially numerical noise; the most-volatile series has obvious cyclical structure. The pattern of forecast performance across these four panels is one of the cleanest diagnostics for whether a given model family is generalising or just fitting one regime well.
+\paragraph{Reading.} A one-size-fits-all model will struggle: the most-stable series is essentially numerical noise, while the most-volatile series has obvious cyclical structure. Forecast performance across these four panels is one of the cleanest diagnostics for whether a model family generalises or only fits one regime.
 
 \subsection{Stationarity diagnostics}
 \label{sec:eda:stationarity}
@@ -135,44 +132,26 @@ The stationary share dominates, but the inconclusive bucket is large enough that
 \label{fig:differencing}
 \end{figure}
 
-\paragraph{Reading.} The diagnostic chain motivates ARIMA with $d=1$ as a sensible default for the classical study, and it explains why differenced features are worth engineering for the global ML models. The fact that 98.5\% of series become stationary after a single difference also bears on the cumulation finding in \cref{sec:cumulation}: differencing the higher-horizon target partially inverts the rolling-sum construction back into the H1 process.
+\paragraph{Reading.} The diagnostic chain motivates ARIMA with $d=1$ as the default for the classical study and justifies engineered differenced features for global ML models. The 98.5\% post-difference stationarity also bears on the cumulation finding in \cref{sec:cumulation}: differencing a higher-horizon target partially inverts the rolling-sum construction back into the H1 process.
 
 \subsection{Visual stationarity --- rolling statistics}
 \label{sec:eda:rolling}
 
-Statistical tests can disagree on short or noisy series. A rolling plot is the simplest visual check: a flat rolling mean indicates constant-mean behaviour; a flat rolling standard deviation indicates constant variance. \Cref{fig:rolling_raw} shows the four chosen series, raw, with a 24-step rolling mean and rolling std overlaid.
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.95\linewidth]{00_rolling_raw}
-\caption{Rolling mean and rolling standard deviation (window = 24) on the raw four representative series. The most-volatile series shows clear drift in level and bulging variance.}
-\label{fig:rolling_raw}
-\end{figure}
-
-\Cref{fig:rolling_diff} repeats the same diagnostic on the first-differenced versions of the same series. The rolling means hug zero and the rolling standard deviations flatten, visually confirming the statistical jump in the previous subsection.
+Statistical tests can disagree on short or noisy series, so a rolling-window view is a useful visual check. After first differencing, the rolling means of the four representative series hug zero and their rolling standard deviations flatten across the cutoff (\cref{fig:rolling_diff}) --- visually confirming the statistical jump from the previous subsection. The corresponding raw plots, omitted here for brevity, show the opposite: drifting means and bulging variances on the most-volatile series.
 
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.95\linewidth]{00_rolling_differenced}
-\caption{Rolling mean and rolling standard deviation (window = 24) on the first-differenced four representative series. The mean now oscillates closer to zero and the variance becomes more stable.}
+\caption{Rolling mean and rolling standard deviation (window = 24) on the first-differenced four representative series. The mean oscillates close to zero and the variance is stable, consistent with stationarity.}
 \label{fig:rolling_diff}
 \end{figure}
 
-\paragraph{Reading.} The visual evidence agrees with the formal tests: differenced series behave more like white noise, raw series often drift. This is exactly the visual behaviour we want before fitting a differenced classical model.
+\paragraph{Reading.} Differenced series behave like the white-noise regime we want before fitting a differenced classical model.
 
 \subsection{Lag structure --- ACF and PACF}
 \label{sec:eda:acf}
 
-The autocorrelation function (ACF) shows correlation between the series and lagged copies of itself; the partial autocorrelation function (PACF) isolates each lag's direct contribution after controlling for shorter lags. A sharp PACF cutoff suggests an autoregressive order; a sharp ACF cutoff suggests a moving-average order. \Cref{fig:acf_anchor} shows the ACF and PACF of the longest-history anchor series.
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.95\linewidth]{00_acf_pacf_anchor}
-\caption{ACF (left) and PACF (right) of the longest-history anchor series, lags 0--40. The shaded band shows the 95\% confidence interval under white noise.}
-\label{fig:acf_anchor}
-\end{figure}
-
-A single series can mislead. We aggregate the absolute ACF and PACF across all 200 sampled series in \cref{fig:acf_panel}. The panel-level view reveals which lags are reliably informative across the panel rather than artefacts of a single trajectory.
+The autocorrelation function (ACF) shows correlation between the series and lagged copies of itself; the partial autocorrelation function (PACF) isolates each lag's direct contribution after controlling for shorter lags. A sharp PACF cutoff suggests an autoregressive order; a sharp ACF cutoff suggests a moving-average order. Rather than relying on a single anchor series, we aggregate the absolute ACF and PACF across all 200 sampled eligible series (\cref{fig:acf_panel}). The panel-level view exposes which lags are reliably informative across the panel rather than artefacts of one trajectory.
 
 \begin{figure}[h]
 \centering
@@ -181,7 +160,7 @@ A single series can mislead. We aggregate the absolute ACF and PACF across all 2
 \label{fig:acf_panel}
 \end{figure}
 
-\paragraph{Reading.} The panel ACF/PACF tell us two things. First, short-memory dynamics are the dominant signal: lags 1--3 carry the bulk of the structure, with rapid decay thereafter. Second, the absence of seasonal bumps argues against building the modelling around seasonality. The lag feature set we engineer for the global ML models therefore prioritises lags 1, 2, 3, 5, 10 and skips seasonal indicators.
+\paragraph{Reading.} Short-memory dynamics dominate (lags 1--3 carry most of the structure with rapid decay thereafter), and there are no clean seasonal bumps. The lag feature set for the global ML models therefore prioritises lags 1, 2, 3, 5, 10 and skips seasonal indicators.
 
 \subsection{STL decomposition}
 \label{sec:eda:stl}
@@ -195,7 +174,7 @@ Seasonal-Trend decomposition using LOESS (STL) splits a series into trend, seaso
 \label{fig:stl}
 \end{figure}
 
-\paragraph{Reading.} The trend component captures the slow level drift that ADF picked up, but the seasonal amplitude is small relative to residual standard deviation. Combined with the absence of seasonal bumps in the panel ACF, this confirms that strong periodic structure is not a property of this panel. Modelling effort should go into short-memory dynamics rather than seasonal indicators.
+\paragraph{Reading.} The trend captures slow drift, but the seasonal amplitude is small relative to the residual. Combined with the absence of seasonal bumps in the panel ACF, this confirms periodic structure is not the dominant signal --- modelling effort goes into short-memory dynamics, not seasonal indicators.
 
 \subsection{Feature audit}
 \label{sec:eda:feature_audit}
@@ -209,21 +188,7 @@ The 86 \texttt{feature\_*} columns are anonymised and we cannot interpret them b
 \label{fig:feature_corr}
 \end{figure}
 
-\paragraph{Reading.} The single largest absolute correlation is below 0.10. No single feature predicts the target well on its own. This rules out a univariate model and warns against placing too much weight on any one feature in importance plots, but it does not mean the features are useless: gradient-boosted trees and other non-linear ensembles can combine many weak features into a meaningful signal.
-
-\subsection{Feature multicollinearity}
-\label{sec:eda:feature_heatmap}
-
-If the top features are highly correlated with each other, their importance ranking is ambiguous --- they may share signal rather than each contributing independently. \Cref{fig:feature_heatmap} shows a correlation heatmap among the top twenty features and the target.
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.95\linewidth]{00_feature_corr_heatmap}
-\caption{Correlation heatmap of the top twenty features (by $|\text{corr}|$ with $y_{\text{target}}$) plus the target itself. Strong block structure indicates feature--feature redundancy.}
-\label{fig:feature_heatmap}
-\end{figure}
-
-\paragraph{Reading.} The heatmap shows three things. The $y_{\text{target}}$ row and column confirm the modest marginal signal seen in the previous subsection. Strong feature--feature correlation blocks reveal real redundancy: multiple features carry overlapping information. Naive feature-importance rankings should therefore be read with collinearity in mind. We will not pretend that a feature ranked first in importance is uniquely responsible for the model's behaviour.
+\paragraph{Reading.} The single largest absolute correlation is below 0.10. No single feature predicts the target well on its own. A separate correlation check among the top twenty features further reveals strong feature--feature blocks, indicating real redundancy in the engineered set. Together these say: the signal is weak, spread across many correlated features, and best exploited by gradient-boosted trees combined with caution when reading importance plots.
 
 \subsection{Cross-series relationships}
 \label{sec:eda:cross_series}
@@ -237,7 +202,7 @@ Within the same \texttt{code}, different sub-codes might share signal. If they d
 \label{fig:cross_series}
 \end{figure}
 
-\paragraph{Reading.} Several pairs show clear peaks away from lag 0, indicating real lead/lag relationships within a code. This is exactly the structure that global models exploit: training a single model on every sub-code lets the model learn the shared component, while per-series fitting wastes that signal entirely. The cross-series evidence is one of our strongest a priori arguments for choosing a global ML approach over the per-series classical approach pursued in the midway.
+\paragraph{Reading.} Clear lead/lag peaks within a code mean global models can learn a shared cross-sub-code component that per-series fits cannot. This is one of the strongest a-priori arguments for the global ML approach.
 
 \subsection{Multi-horizon coupling}
 \label{sec:multihorizon}
