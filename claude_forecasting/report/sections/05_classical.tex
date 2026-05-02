@@ -1,0 +1,122 @@
+\section{Classical Baselines}
+\label{sec:classical}
+
+This section establishes what per-series classical fitting can and cannot do on this panel. The four representative series from \cref{sec:eda:repseries} are forecast under a single chronological protocol, scored under the weighted skill score, and compared against naive baselines that act as the visible floor. The headline finding is that classical local fits are \emph{feasibility-limited and signal-limited}: only one of the four series produces a statistically significant improvement over the naive floor. We treat this section primarily as a scope demonstration that motivates the global pooled approach in \cref{sec:eda:cross_series} (and the modelling chapters that follow).
+
+\subsection{Setup and the four representative series}
+\label{sec:classical:setup}
+
+We reuse the four series chosen in \cref{sec:eda:repseries} so that the visualisations carry over from the EDA. Two implementation choices differ from the midway report.
+
+First, we use \textbf{adaptive 80/20 chronological splits per series} rather than the canonical fixed cutoff at $\mathtt{ts\_index} = 2880$. Under the fixed cutoff, two of the four series (highest-weight and most-stable) end up with only 7 pre-cutoff training points, which is below the minimum window required for ARMA/ARIMA estimation and forces those families to be skipped entirely. Adaptive splits preserve chronology --- training rows always strictly precede validation rows --- while ensuring every series has a usable training segment. The trade-off is that classical numbers in this section are not directly comparable, slice-for-slice, with the global ML numbers in later sections; we flag this explicitly when synthesising results in \cref{sec:weight_per_horizon}.
+
+Second, we use \textbf{AICc-based automatic order selection} for AR, MA, ARMA, and ARIMA over a small grid of $(p, q) \in \{0, 1, 2, 3\}^2$. Hand-picking a winner from a 12-cell grid inflates the multiple-comparisons risk. AICc selects one order per series per family using a small-sample-corrected information criterion, so the model reported as ``the AR result'' is the one AICc would have chosen on the training data alone.
+
+\Cref{tab:classical_splits} summarises the per-series training and validation lengths under the adaptive split.
+
+\begin{table}[h]
+\centering
+\caption{Adaptive per-series chronological splits used for the classical study.}
+\label{tab:classical_splits}
+\begin{tabular}{l c c c c}
+\toprule
+Series & Horizon & Train length & Val length & Validation range \\
+\midrule
+Longest history     & H1  & 169 & 43 & 2995--3037 \\
+Highest total weight & H25 & 124 & 32 & 3001--3032 \\
+Most volatile       & H25 & 129 & 33 & 2879--2911 \\
+Most stable         & H1  & 136 & 34 & 3013--3052 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Model lineup}
+\label{sec:classical:lineup}
+
+The lineup spans naive baselines (the floor), smoothing models (robust on tiny windows), and four flavours of order-selected ARIMA-family models.
+
+\begin{table}[h]
+\centering
+\caption{Classical model lineup. AR / MA / ARMA / ARIMA orders are selected per series by AICc on the grid $(p,q) \in \{0,1,2,3\}^2$ with the indicated $d$.}
+\label{tab:classical_lineup}
+\begin{tabular}{l l l}
+\toprule
+Family & Models & Role \\
+\midrule
+Naive baselines & Zero, Naive (lag-1), Drift     & Skill floor \\
+Smoothing       & Rolling Mean ($w{=}10$), SES, Holt & Robust on small windows \\
+AR              & order $(p,0,0)$, AICc-selected     & Lagged-target dependence only \\
+MA              & order $(0,0,q)$, AICc-selected     & Serially correlated shocks \\
+ARMA            & order $(p,0,q)$, AICc-selected     & AR + MA in levels \\
+ARIMA           & order $(p,1,q)$, AICc-selected     & Differencing as the EDA-motivated repair \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+We deliberately exclude SARIMA because the panel ACF in \cref{sec:eda:acf} shows no clean seasonal structure, so any seasonal period would be an unjustified hyperparameter. We also exclude AR/MA/ARMA/ARIMA orders larger than 3 because validation segments are 32--43 rows --- larger orders cannot be reliably estimated on this much data even when they fit the training window.
+
+\subsection{Evaluation protocol}
+\label{sec:classical:protocol}
+
+Each model is fit on the per-series training segment and forecasts the full validation segment in one closed-form multi-step pass. This is the deployment-realistic protocol: no ground-truth feedback during forecasting. The headline number for every model is its weighted skill score on the validation segment under this protocol.
+
+For ARIMA-family winners we additionally compute an \emph{open-loop one-step} prediction at each validation time step --- the model is given the true previous value at each step rather than its own previous prediction. Open-loop one-step is not a deployable protocol (the truth is unavailable at inference), but the gap between the two predictions is informative: it measures how much skill is lost when the model has to feed back its own predictions through the validation window. We render the one-step variant as a point cloud overlaid on the multi-step forecast in \cref{fig:classical_overlay}, but do not promote it to a headline number. For the smoothing-family winners, the open-loop one-step prediction coincides with the multi-step forecast when the smoothing parameters are estimated on training data only, so we omit it.
+
+We deliberately do not report unweighted RMSE or MAE as headline numbers: per the discussion in \cref{sec:skill}, unweighted error metrics can disagree with the weighted skill score on which model is best, because the high-weight rows dominate the weighted score.
+
+\subsection{Per-series leaderboard}
+\label{sec:classical:leaderboard}
+
+\Cref{tab:classical_leaderboard} reports the best model per series under weighted skill, with 95\% bootstrap confidence intervals from 500 resamples of the validation rows. The Naive (lag-1) skill is shown alongside as the floor that any reported result has to clear. Auto-selected ARIMA-family orders are shown in parentheses.
+
+\begin{table}[h]
+\centering
+\caption{Per-series leaderboard under the adaptive split. ``Skill (95\% CI)'' is the weighted skill of the best model with a 500-sample bootstrap interval. ``Naive floor'' is the weighted skill of the lag-1 forecast on the same validation segment.}
+\label{tab:classical_leaderboard}
+\begin{tabular}{l l l c c}
+\toprule
+Series & Best model & Family & Skill (95\% CI) & Naive floor \\
+\midrule
+Longest history     & AR$(3,0,0)$        & AR        & $0.04$ \,$[0.00, 0.27]$ & $0.00$ \\
+Highest total weight & SES                & Smoothing & $0.47$ \,$[0.00, 0.65]$ & $0.44$ \\
+Most volatile       & Rolling Mean $(w{=}10)$ & Smoothing & $\mathbf{0.80}$ \,$[\mathbf{0.56}, \mathbf{0.91}]$ & $0.67$ \\
+Most stable         & Rolling Mean $(w{=}10)$ & Smoothing & $0.17$ \,$[0.00, 0.27]$ & $0.00$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The bootstrap intervals are the substantive part of this table. Three of the four series have intervals that include zero, meaning the apparent improvement over the naive floor is within sampling noise on a validation segment of 32--43 rows. The most-volatile series is the only case where the interval excludes zero: rolling-mean skill $0.80$ with $\mathrm{CI}\,[0.56, 0.91]$ is a real positive result. For the highest-weight series the SES point estimate ($0.47$) is barely above naive ($0.44$); the wide CI down to $0.00$ confirms that the apparent edge is fragile.
+
+A second informative signal is which family wins. Smoothing wins three of four cases, and the only AR-family winner (longest history, AR$(3,0,0)$) has the lowest skill of the four. Differenced ARIMA, which won the corresponding case in the midway report, does not appear in this leaderboard.
+
+\subsection{Skip-status under adaptive splits}
+\label{sec:classical:skip}
+
+Under the adaptive 80/20 split, every model in the lineup successfully fits on every series. The skip-status table is therefore empty, which is itself the point of using adaptive splits: the same lineup under the canonical fixed cutoff at $\mathtt{ts\_index} = 2880$ would have skipped every ARMA, ARIMA, AR$(p \ge 2)$, and MA$(q \ge 2)$ fit on the highest-weight and most-stable series, because their pre-cutoff training segments contain only 7 rows. Reporting fit feasibility separately from fit performance is therefore unnecessary here.
+
+\subsection{Forecast overlays}
+\label{sec:classical:overlay}
+
+\Cref{fig:classical_overlay} shows the per-series train and validation segments alongside the best model's closed-form multi-step forecast, the Naive (lag-1) floor, and (where the best model is in the AR family) the open-loop one-step variant rendered as small dots.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{01_forecast_overlay_2x2}
+\caption{Forecast overlays for the four representative series under the adaptive split. Black: training segment. Orange: validation truth. Blue solid: best model under closed-form multi-step. Blue dots: open-loop one-step prediction (only shown for AR-family winners). Grey dashed: Naive (lag-1) floor. Vertical dashed line: per-series train/validation cutoff. Skill annotations are weighted skill scores against the validation segment.}
+\label{fig:classical_overlay}
+\end{figure}
+
+The four panels have very different vertical scales (the most-volatile series swings between $-600$ and $+600$, the most-stable series occupies a range narrower than $0.0004$), which is the same regime contrast first surfaced in \cref{sec:eda:repseries}. The forecast lines are flat or near-flat in three of the four panels because the best model in those cases is a smoothing model whose multi-step forecast is constant by construction. The most-volatile panel is the only case where the forecast line changes meaningfully across the validation segment, and it is also the only case where the model produces a substantively positive skill above naive. The open-loop one-step dots in the longest-history panel are visibly closer to the validation truth than the multi-step line --- the visible gap is the value of feedback at inference for that series and that model.
+
+\subsection{What this study can and cannot say}
+\label{sec:classical:conclusions}
+
+Three points to carry forward:
+
+\begin{enumerate}
+  \item \textbf{Local classical fits are bounded by training length and target structure, not by model sophistication.} Auto-selecting orders, expanding the grid, or substituting fancier classical variants would not move the headline numbers in any meaningful way. The cap on classical performance here is the data, not the methodology.
+  \item \textbf{Smoothing wins on every series except the longest-history case, and even there the AR winner has skill $0.04$.} The midway report attributed the volatile-series win to ARIMA $d{=}1$ ``capturing differencing structure''. Under the adaptive split with auto-selected orders, the simpler Rolling Mean baseline wins instead, with the strongest statistical signal among all four series. This suggests that on this panel, robust low-complexity smoothing is at least as defensible as differenced ARIMA --- and is the safer reporting choice given the bootstrap intervals.
+  \item \textbf{Per-series fitting throws away the global panel structure.} The 86 anonymised features and the cross-series correlations documented in \cref{sec:eda:cross_series} are entirely unused here. The next chapter lifts both restrictions by training globally with sample weights, and the per-horizon weight-dominance finding in \cref{sec:weight_per_horizon} guides where the additional capacity should be spent.
+\end{enumerate}
+
+This section is therefore a scope demonstration: it establishes the upper bound on what local classical fitting can achieve on this panel, with proper bootstrap intervals so that the bound is statistically defensible. The modelling work proper begins in the next chapter.
