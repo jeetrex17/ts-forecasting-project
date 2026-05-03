@@ -55,6 +55,23 @@ ARIMA           & order $(p,1,q)$, AICc-selected     & Differencing as the EDA-m
 
 We deliberately exclude SARIMA because the panel ACF in \cref{sec:eda:acf} shows no clean seasonal structure, so any seasonal period would be an unjustified hyperparameter. We also exclude AR/MA/ARMA/ARIMA orders larger than 3 because validation segments are 32--43 rows --- larger orders cannot be reliably estimated on this much data even when they fit the training window.
 
+\paragraph{What AIC and AICc do.}
+AIC, the Akaike Information Criterion, scores a fitted model by trading off goodness of fit against parameter count:
+\begin{equation}
+\label{eq:aic}
+\mathrm{AIC} \;=\; -2 \, \log \hat L \;+\; 2k,
+\end{equation}
+where $\hat L$ is the maximised likelihood of the model on the training data and $k$ is the number of estimated parameters. Lower is better. The first term rewards models that explain the data; the second penalises models that explain it by adding parameters. Used as a model-selection criterion across non-nested specifications, AIC tends to pick the model with the best out-of-sample predictive accuracy on average, which is exactly the property we want when choosing an ARIMA order.
+
+AICc is a small-sample correction to AIC:
+\begin{equation}
+\label{eq:aicc}
+\mathrm{AICc} \;=\; \mathrm{AIC} \;+\; \dfrac{2k(k+1)}{n-k-1},
+\end{equation}
+where $n$ is the number of training observations. The correction term decays towards zero as $n$ grows, so for large samples AICc and AIC agree, but for small $n$ relative to $k$ the AIC penalty is too lenient and the model selected by AIC tends to overfit. Burnham and Anderson recommend AICc whenever $n / k < 40$. With training segments of 124--169 rows and ARIMA orders up to $k \approx 8$ parameters, our $n/k$ ratio sits between 15 and 21, well inside the AICc regime. Using AICc here is not a stylistic choice; it is the appropriate small-sample variant.
+
+We use AICc to choose the order $(p, q)$ within each family for each series, and we let it pick across families with different $d$ values too: AR, MA, and ARMA fit the series in levels ($d=0$); ARIMA fits the differenced series ($d=1$). This is more principled than gating on the ADF result, because the ADF test is itself a noisy decision, whereas AICc is a continuous criterion that compares all candidate specifications on the same scale.
+
 \subsection{Evaluation protocol}
 \label{sec:classical:protocol}
 
