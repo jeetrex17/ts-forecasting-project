@@ -88,21 +88,23 @@ We deliberately do not report unweighted RMSE or MAE as headline numbers: per th
 
 \begin{table}[h]
 \centering
-\caption{Per-series leaderboard under the adaptive split. ``Skill (95\% CI)'' is the weighted skill of the best model with a 500-sample bootstrap interval. ``Naive floor'' is the weighted skill of the lag-1 forecast on the same validation segment.}
+\caption{Per-series leaderboard under the adaptive split. ``Skill (95\% CI)'' is the weighted skill of the best model with a 500-sample bootstrap interval. ``Naive floor'' is the weighted skill of the lag-1 forecast on the same validation segment. ``AICc'' is the small-sample-corrected information criterion of the winning fit; a dash indicates a non-likelihood baseline (Rolling Mean) for which AICc is not defined.}
 \label{tab:classical_leaderboard}
-\begin{tabular}{l l l c c}
+\begin{tabular}{l l l c c c}
 \toprule
-Series & Best model & Family & Skill (95\% CI) & Naive floor \\
+Series & Best model & Family & AICc & Skill (95\% CI) & Naive floor \\
 \midrule
-Longest history     & AR$(3,0,0)$        & AR        & $0.04$ \,$[0.00, 0.27]$ & $0.00$ \\
-Highest total weight & SES                & Smoothing & $0.47$ \,$[0.00, 0.65]$ & $0.44$ \\
-Most volatile       & Rolling Mean $(w{=}10)$ & Smoothing & $\mathbf{0.80}$ \,$[\mathbf{0.56}, \mathbf{0.91}]$ & $0.67$ \\
-Most stable         & Rolling Mean $(w{=}10)$ & Smoothing & $0.17$ \,$[0.00, 0.27]$ & $0.00$ \\
+Longest history     & AR$(3,0,0)$            & AR        & $732.60$  & $0.04$ \,$[0.00, 0.27]$ & $0.00$ \\
+Highest total weight & SES                    & Smoothing & $-2086.21$ & $0.47$ \,$[0.00, 0.65]$ & $0.44$ \\
+Most volatile       & Rolling Mean $(w{=}10)$ & Smoothing & ---       & $\mathbf{0.80}$ \,$[\mathbf{0.56}, \mathbf{0.91}]$ & $0.67$ \\
+Most stable         & Rolling Mean $(w{=}10)$ & Smoothing & ---       & $0.17$ \,$[0.00, 0.27]$ & $0.00$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 The bootstrap intervals are the substantive part of this table. Three of the four series have intervals that include zero, meaning the apparent improvement over the naive floor is within sampling noise on a validation segment of 32--43 rows. The most-volatile series is the only case where the interval excludes zero: rolling-mean skill $0.80$ with $\mathrm{CI}\,[0.56, 0.91]$ is a real positive result. For the highest-weight series the SES point estimate ($0.47$) is barely above naive ($0.44$); the wide CI down to $0.00$ confirms that the apparent edge is fragile.
+
+The AICc column is included for the likelihood-based winners. The very negative AICc on the highest-weight SES fit ($-2086$) reflects that series operating on a numerical scale near $10^{-4}$, so the residual log-likelihood is large in magnitude; AICc is comparable across orders within a family but not directly across series, so the absolute value matters less than the fact that an AICc was selected. The AR$(3,0,0)$ winner on the longest-history series was preferred over its lower-order siblings; the SES winner on the highest-weight series was preferred over Holt under the same training window.
 
 A second informative signal is which family wins. Smoothing wins three of four cases, and the only AR-family winner (longest history, AR$(3,0,0)$) has the lowest skill of the four. Differenced ARIMA, which won the corresponding case in the midway report, does not appear in this leaderboard.
 
