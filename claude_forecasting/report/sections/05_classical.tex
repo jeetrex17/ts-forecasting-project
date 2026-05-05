@@ -102,7 +102,18 @@ Most stable         & Rolling Mean $(w{=}10)$ & Smoothing & ---       & $0.17$ \
 \end{tabular}
 \end{table}
 
-The bootstrap intervals are the substantive part of this table. Three of the four series have intervals that include zero, meaning the apparent improvement over the naive floor is within sampling noise on a validation segment of 32--43 rows. The most-volatile series is the only case where the interval excludes zero: rolling-mean skill $0.80$ with $\mathrm{CI}\,[0.56, 0.91]$ is a real positive result. For the highest-weight series the SES point estimate ($0.47$) is barely above naive ($0.44$); the wide CI down to $0.00$ confirms that the apparent edge is fragile.
+\Cref{fig:classical_skill_bars} expands the leaderboard table into a within-series visual. Each panel shows every model's weighted skill on one of the four representative series, sorted descending, with the Naive (lag-1) floor drawn as a dashed vertical line. Bar colour encodes model family. The four panels' skill ranges differ wildly because the underlying data does, so the within-series ranking is what matters; cross-series mean skills would be dominated by the volatile case.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{01_per_series_skill_bars}
+\caption{Per-series weighted skill across all classical models. Each panel ranks every fitted model on one series; the Naive (lag-1) floor is shown as a dashed vertical line. Bar colour encodes model family (Naive grey, Smoothing brown, AR blue, MA purple, ARMA pink, ARIMA red).}
+\label{fig:classical_skill_bars}
+\end{figure}
+
+Three patterns are visible in the figure that are easier to read than from the table alone. On the most-volatile series, the Rolling Mean leads but several ARMA / ARIMA fits cluster within $0.1$ skill of it --- the leaderboard winner is not unique and the family choice is not strongly determined. On the highest-weight series, SES, ARIMA $d{=}1$, and Naive cluster within $0.05$ of each other --- the apparent SES win documented in \cref{tab:classical_leaderboard} is on the edge of significance, consistent with its CI floor at zero. On the longest-history and most-stable series, every model collapses near the Naive floor; the visual flatness of those panels is the empirical content of the ``no signal to extract'' framing in \cref{sec:classical:conclusions}.
+
+The bootstrap intervals in the leaderboard are the substantive part of the table. Three of the four series have intervals that include zero, meaning the apparent improvement over the naive floor is within sampling noise on a validation segment of 32--43 rows. The most-volatile series is the only case where the interval excludes zero: rolling-mean skill $0.80$ with $\mathrm{CI}\,[0.56, 0.91]$ is a real positive result. For the highest-weight series the SES point estimate ($0.47$) is barely above naive ($0.44$); the wide CI down to $0.00$ confirms that the apparent edge is fragile.
 
 The AICc column is included for the likelihood-based winners. The very negative AICc on the highest-weight SES fit ($-2086$) reflects that series operating on a numerical scale near $10^{-4}$, so the residual log-likelihood is large in magnitude; AICc is comparable across orders within a family but not directly across series, so the absolute value matters less than the fact that an AICc was selected. The AR$(3,0,0)$ winner on the longest-history series was preferred over its lower-order siblings; the SES winner on the highest-weight series was preferred over Holt under the same training window.
 

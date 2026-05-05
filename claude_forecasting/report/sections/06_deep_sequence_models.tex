@@ -1,0 +1,104 @@
+\section{Deep Sequence Models on Representative Series}
+\label{sec:deep}
+
+This section fits recurrent sequence models (RNN, GRU, LSTM) on the same four representative series used in \cref{sec:eda:repseries} and \cref{sec:classical}. Compared with the midway report, the principal additions are a feature-aware variant of every architecture, bootstrap confidence intervals on every reported skill score, and a direct visual comparison against the classical winners from \cref{tab:classical_leaderboard}. The headline finding is asymmetric: deep models substantively beat classical on the most-volatile series (with statistical significance), badly underperform on the highest-weight series, and roughly tie on the other two.
+
+\subsection{Setup and architectures}
+\label{sec:deep:setup}
+
+We reuse the four representative series and the adaptive 80/20 chronological splits from \cref{tab:classical_splits}, so per-series training and validation lengths are identical to those used in the classical study. The metric, weighted skill score, is also identical, scored on the validation segment.
+
+Three architectures are fit with matching shapes:
+
+\begin{itemize}
+  \item \textbf{RNN} --- single recurrent layer with hidden size 32 and \texttt{tanh} non-linearity.
+  \item \textbf{GRU} --- single gated-recurrent layer with hidden size 32.
+  \item \textbf{LSTM} --- single long-short-term-memory layer with hidden size 32.
+\end{itemize}
+
+All three are trained for up to 80 epochs with early stopping (patience 10) on a held-out 15\% slice of the per-series \emph{training} segment. The validation segment used for scoring is held out entirely. Optimisation uses Adam at learning rate $10^{-3}$, batch size 32, and MSE loss on standardised one-step windows of length $L = 24$. We do not run a hyperparameter sweep in this lean version; defaults are fixed once and held constant across all (series, architecture, mode) configurations.
+
+\subsection{Two input modes}
+\label{sec:deep:modes}
+
+Each architecture is fit twice, once in each of two input modes:
+
+\begin{itemize}
+  \item \textbf{target-only} --- the input at each step is the lagged target alone, shape $(B, L, 1)$. This matches the midway setup.
+  \item \textbf{feature-aware} --- the input concatenates the lagged target with the lagged top-$k$ features, shape $(B, L, 1 + k)$. We use $k = 10$, picking the features with the largest absolute Pearson correlation against $y_{\text{target}}$ on a 200{,}000-row stratified sample (the same ranking surfaced in \cref{sec:eda:feature_audit}).
+\end{itemize}
+
+The recursive multi-step forecast at validation time uses the predicted $y$ at each step as the next-step's lagged target. Future feature values, when used, are taken from the dataset; they are exogenous knowns at validation time, not labels. The open-loop one-step diagnostic is computed by always feeding the true previous $y$ at each step --- analogous to the protocol introduced in \cref{sec:classical:protocol}.
+
+\subsection{Per-series leaderboard}
+\label{sec:deep:leaderboard}
+
+\Cref{tab:deep_leaderboard} reports the best deep configuration per series under recursive-multi-step weighted skill, with 95\% bootstrap intervals from 500 resamples of the validation rows. The corresponding best classical model (from \cref{tab:classical_leaderboard}) and the Naive (lag-1) floor are shown alongside.
+
+\begin{table}[h]
+\centering
+\caption{Per-series deep leaderboard. ``Best deep'' shows the winning architecture and input mode; ``Skill (95\% CI)'' is the recursive-multi-step weighted skill of that configuration with a 500-sample bootstrap interval. ``Classical'' is the corresponding winner from \cref{tab:classical_leaderboard}.}
+\label{tab:deep_leaderboard}
+\begin{tabular}{l l c c c}
+\toprule
+Series & Best deep & Skill (95\% CI) & Naive floor & Classical \\
+\midrule
+Longest history     & GRU / feature-aware  & $0.04$ \,$[0.00, 0.61]$ & $0.00$ & AR$(3,0,0)$ $0.04$ \\
+Highest total weight & RNN / target-only    & $0.18$ \,$[0.00, 0.33]$ & $0.44$ & SES $0.47$ \\
+Most volatile       & GRU / feature-aware  & $\mathbf{0.87}$ \,$[\mathbf{0.83}, \mathbf{0.90}]$ & $0.67$ & Rolling Mean $0.80$ \\
+Most stable         & GRU / target-only    & $0.15$ \,$[0.00, 0.23]$ & $0.00$ & Rolling Mean $0.17$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The most-volatile series is the only case with a statistically significant deep-over-classical improvement: the bootstrap CI $[0.83, 0.90]$ excludes the classical Rolling Mean point estimate $0.80$. The feature-aware GRU produced this win; the target-only variant of the same architecture scored only $0.32$, so the features themselves are doing meaningful work on this series.
+
+The highest-weight result is the cleanest negative finding. The best deep configuration scores $0.18$, well below the SES classical winner at $0.47$ and even below the Naive floor at $0.44$. Recursive multi-step recurrence on a series operating at scale $10^{-4}$ accumulates error faster than smoothing absorbs it; with only 124 training rows, the network has too little data to lock in the mean dynamics that SES captures trivially.
+
+The longest-history and most-stable cases are inside-noise ties with classical. The wide CIs on both --- the longest-history CI runs all the way from $0.00$ to $0.61$ --- reflect a 32--43-row validation segment where every model's score is bootstrap-fragile.
+
+\Cref{fig:deep_skill_bars} shows the same data as a per-series bar chart, with the Naive and best-classical reference lines drawn. The within-series ranking is what matters; cross-series mean skills would be dominated by the volatile case.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{02_per_series_skill_bars}
+\caption{Recursive-multi-step weighted skill for every (architecture, input mode) configuration on each series. Bar colour encodes architecture (RNN green, GRU red, LSTM purple); bar opacity encodes mode (solid for feature-aware, faded for target-only). The Naive (lag-1) floor and the best classical winner from \cref{tab:classical_leaderboard} are shown as dashed vertical lines.}
+\label{fig:deep_skill_bars}
+\end{figure}
+
+\subsection{Deep versus classical forecast overlays}
+\label{sec:deep:overlay}
+
+\Cref{fig:deep_overlay} shows the per-series train and validation segments alongside the best deep configuration's recursive-multi-step forecast, the corresponding best classical model's forecast (from \cref{sec:classical:overlay}), and the Naive (lag-1) floor. Skill annotations on each panel make the deep-versus-classical comparison directly readable.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{02_forecast_overlay_2x2}
+\caption{Forecast overlays for the four representative series. Black: training segment. Orange: validation truth. Brown: best classical winner from \cref{tab:classical_leaderboard}. Coloured (architecture-specific): best deep configuration. Grey dashed: Naive (lag-1) floor. Vertical dashed line: per-series train/validation cutoff. Skill annotations are weighted skill scores against the validation segment.}
+\label{fig:deep_overlay}
+\end{figure}
+
+The most-volatile panel is the only case where the deep forecast tracks the validation trajectory meaningfully better than the classical Rolling Mean (which is flat by construction). On the highest-weight panel, the deep forecast curves away from the truth more aggressively than the classical SES line, consistent with the recursive-error-compounding explanation above. The longest-history and most-stable panels show every method clustered near zero --- the empirical content of the ``no signal to extract'' framing carried over from \cref{sec:classical:conclusions}.
+
+\subsection{Per-step skill within the validation window}
+\label{sec:deep:per_step}
+
+A single skill score per series collapses the entire validation horizon onto one number. Computing weighted skill at horizons $h \in \{1, 5, 10, 25\}$ within the validation window separates short-horizon performance (where one-step memory is what matters) from long-horizon performance (where compounding errors dominate). The training-curve and per-step-skill diagnostics are produced by the notebook (\texttt{02\_per\_step\_skill.pdf} and \texttt{02\_training\_curves.pdf}) and are not embedded here for brevity. Two qualitative observations:
+
+\begin{itemize}
+  \item On the most-volatile series, GRU / feature-aware retains skill close to $0.85$ at every horizon, indicating the model has captured a stable feature--target relationship rather than an early-window fluke.
+  \item On the highest-weight series, the open-loop one-step skill ($0.66$ for LSTM) is substantially higher than the recursive-multi-step skill ($0.00$). The gap is the entirety of the deep failure on that series: feedback at inference is what classical SES is implicitly providing through its update rule, and recurrent models without that feedback cannot match it.
+\end{itemize}
+
+This observation motivates the next chapter. If recurrent models with feedback at inference could be made deployable, they might recover the highest-weight loss; the H1-aggregation experiment in \cref{sec:cumulation} explores a structurally different way to inject feedback by exploiting the multi-horizon coupling property of the panel.
+
+\subsection{What this study can and cannot say}
+\label{sec:deep:conclusions}
+
+Three points to carry forward:
+
+\begin{enumerate}
+  \item \textbf{Deep sequence models help where classical fails for sequence-structural reasons, and not elsewhere.} The most-volatile series has dynamic structure that smoothing cannot capture; the feature-aware GRU captures it. The highest-weight series has structure that smoothing captures trivially via its update rule; recursive recurrence cannot match that without inference-time feedback. The other two series have no exploitable signal at this scale.
+  \item \textbf{The feature-aware variant is not a free win.} It produced the volatile-series victory but did not improve the highest-weight result. With only ${\sim}120$ training rows and 10 added feature channels, capacity outpaces data on series where lagged target alone already saturates the available signal.
+  \item \textbf{Per-series fitting still bounds the result, exactly as in \cref{sec:classical:conclusions}.} Each model sees ${\sim}120$ training rows and zero cross-series structure. The next chapter (global LightGBM) lifts that limit; the H1-aggregation experiment after that uses the multi-horizon coupling in a way no per-series model can.
+\end{enumerate}

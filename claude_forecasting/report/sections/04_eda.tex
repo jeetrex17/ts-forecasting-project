@@ -174,16 +174,27 @@ The autocorrelation function (ACF) shows correlation between the series and lagg
 \subsection{STL decomposition}
 \label{sec:eda:stl}
 
-Seasonal-Trend decomposition using LOESS (STL) splits a series into trend, seasonal, and residual components. We apply STL to the longest-history anchor with a period of 24 and observe the relative amplitudes of the three components. \Cref{fig:stl} shows the result.
+Seasonal-Trend decomposition using LOESS (STL) splits a series into trend, seasonal, and residual components. STL requires a fixed seasonal period as input. The midway report used $\text{period} = 24$ without justification, which is methodologically weak: any STL output is only as meaningful as the period plugged into it. Here we instead select the period from the data using a periodogram of the linearly-detrended anchor series and pick the dominant non-zero frequency. If the spectrum is flat (no concentrated peak) we report that fact directly --- a flat spectrum is itself the conclusion that strong seasonality is absent.
+
+\Cref{fig:periodogram} shows the periodogram on the longest-history anchor. The spectrum is approximately flat: there is no dominant peak, the strongest non-zero peaks are scattered across short periods (3--8 steps), and the top three frequencies together hold only about 11\% of total power. By contrast, a genuinely seasonal series typically concentrates 50\%+ of its power into one or two frequencies. The FFT-selected period for STL is 4, but it is selected from a spectrum that does not support a seasonal interpretation in the first place.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{00_periodogram_anchor}
+\caption{Periodogram of the linearly-detrended longest-history anchor (log-scaled period axis). The spectrum is approximately flat; no single frequency dominates. The top three frequencies together hold ${\sim}11$\% of total power. The vertical dashed line marks the period selected for STL ($p=4$).}
+\label{fig:periodogram}
+\end{figure}
+
+\Cref{fig:stl} shows the resulting STL decomposition with $\text{period} = 4$. The seasonal amplitude is comparable to the trend amplitude, but this is an artefact of using a very short period: at $p=4$, STL is decomposing the short-memory autocorrelation already surfaced in the panel ACF as if it were seasonality. The structurally informative finding is the flat spectrum, not the STL panels.
 
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.85\linewidth]{00_stl_anchor}
-\caption{STL decomposition of the longest-history anchor with period 24. The trend component captures slow drift; the seasonal amplitude is small relative to residual standard deviation.}
+\caption{STL decomposition of the longest-history anchor with the FFT-selected period $p = 4$. The seasonal amplitude is large only because the period is short enough to absorb the lag-1/lag-2 autocorrelation surfaced in \cref{sec:eda:acf}; it is not evidence of genuine periodicity.}
 \label{fig:stl}
 \end{figure}
 
-\paragraph{Reading.} The trend captures slow drift, but the seasonal amplitude is small relative to the residual. Combined with the absence of seasonal bumps in the panel ACF, this confirms periodic structure is not the dominant signal --- modelling effort goes into short-memory dynamics, not seasonal indicators.
+\paragraph{Reading.} The flat periodogram is the headline. There is no exploitable periodic structure in this panel, so modelling effort should go into short-memory dynamics (lag features 1, 2, 3, 5, 10) rather than seasonal indicators. The STL decomposition is reported because it is part of the standard EDA toolkit, but its seasonal panel is short-memory autocorrelation in disguise, not real seasonality.
 
 \subsection{Feature audit}
 \label{sec:eda:feature_audit}
