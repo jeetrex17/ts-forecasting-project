@@ -1,0 +1,16 @@
+\section{Analysis of the Numerical Results}
+\label{sec:analysis}
+
+\textit{To be expanded after the comparative-analysis notebook lands.} This chapter will consolidate the numerical results from the classical, deep, global gradient-boosted, multi-horizon-aggregation, probabilistic, and ensemble studies into a single per-horizon leaderboard with bootstrap confidence intervals, and discuss the methodological research gap identified through the project.
+
+\subsection{Headline empirical results so far}
+
+The strongest empirical result established to date is the global LightGBM result on the metric-decisive horizon H3: weighted skill $0.664$ on the canonical holdout window with a 95\% bootstrap confidence interval $[0.657, 0.671]$, against a Naive (lag-1) floor of $0.464$ on the same rows --- an absolute lift of $+0.20$ skill (\cref{tab:lgbm_leaderboard}). The headline visual is \cref{fig:lgbm_skill_bars}, which makes the H3 gap visually striking against the near-equal H10 and H25 bars.
+
+\subsection{Research gap identified}
+
+The single most important methodological finding to carry forward is that the four forecast horizons are not independent series but coupled cumulations of a single underlying H=1 process (\cref{sec:cumulation}). The Pearson correlation between $y^{H_k}_t$ and the rolling sum of $y^{H_1}$ over $k$ steps has median 0.96, 0.94, and 0.91 at $k = 3, 10, 25$ respectively. None of the standard hedge-fund forecasting baselines, including the midway report's per-horizon-independent fitting, exploits this constraint. The H1-aggregation experiment scheduled for a later notebook tests whether fitting H1 alone and aggregating to longer horizons by rolling sum can match or exceed the per-horizon-independent results.
+
+\subsection{Detailed cross-model comparison}
+
+\textit{To be added after the comparative-analysis notebook produces the consolidated leaderboard.}

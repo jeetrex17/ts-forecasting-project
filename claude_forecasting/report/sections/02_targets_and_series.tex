@@ -1,9 +1,13 @@
-\section{Forecast Targets and Series Identity}
+\section{Data Source and Characteristics}
 \label{sec:targets}
 
-A panel forecasting problem only makes sense once the unit of analysis is unambiguous. This section fixes the definitions used throughout the project.
+This section fixes the data source, panel keys, and chronological constraints used throughout the project. Data pre-processing details (missing-value handling, normalisation, feature engineering) live in \cref{sec:eda}, which also contains the exploratory analysis the prof's outline requires under that heading.
 
-\subsection{Panel keys}
+\subsection{Source}
+
+The dataset is the publicly released Kaggle competition \emph{Hedge fund -- time-series forecasting}, distributed as two parquet files (\texttt{train.parquet}, \texttt{test.parquet}) totalling approximately one gigabyte. The training partition spans $\mathtt{ts\_index}$ 1 to 3601, the held-out test partition continues from $\mathtt{ts\_index}$ 3602 to 4376. All identifiers, feature names, and underlying financial semantics are anonymised by the competition organiser.
+
+\subsection{Panel keys and unit of analysis}
 
 A row of the panel has primary keys
 $(\mathtt{code},\mathtt{sub\_code},\mathtt{sub\_category},\mathtt{horizon},\mathtt{ts\_index})$.

@@ -34,32 +34,45 @@
 \let\oldsection\section
 \renewcommand{\section}{\clearpage\oldsection}
 
-% --- Title and author block ---
-\title{\textbf{Hedge Fund Panel Forecasting} \\[4pt]
-\large Multi-Horizon Time-Series Modelling under a Weighted Skill Score Metric}
-
-\author{
-  Author 1\\
-  \and
-  Author 2\\
-  \and
-  Author 3\\
-  \and
-  Author 4
-}
-
-\date{DA-IICT, Semester 6 \\ Applied Forecasting Methods, 2026}
-
 \begin{document}
 
-\maketitle
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+
+    {\Huge \textbf{Hedge Fund\\
+    Panel Time Series Forecasting}}\\[1cm]
+
+    {\Large \textbf{Course Name:} Applied Forecasting Methods}\\[2cm]
+
+    {\Large \textbf{Group Members:}}\\[0.5cm]
+    Kaushal Nandaniya (202303036)\\[0.2cm]
+    Jeetraj Gohil (202303017)\\[0.2cm]
+    [Member 3 Name] (Roll No: [Roll No])\\[2cm]
+
+    {\Large \textbf{Instructor Name:} Pritam Anand}\\[2cm]
+
+    {\Large \textbf{Institution Name:} Dhirubhai Ambani Institute of Information and Communication Technology}\\[2cm]
+
+    {\Large \textbf{Submission Date:} \today}
+
+    \vfill
+\end{titlepage}
 
 \begin{abstract}
-\noindent\textit{Abstract to be written after final results have landed.} This project studies a panel of approximately 37,000 anonymised time series taken from a Kaggle hedge-fund forecasting competition. The target is forecast at four lookahead horizons under a weighted skill score that concentrates roughly two thirds of the evaluation mass in the top one percent of rows. The first phase of the work, presented in this draft, establishes the structure of the panel, the diagnostic conditions for classical and machine-learning models, and three findings that were not surfaced in the midway report: the four horizons are coupled cumulations of a single short-step process, the maximum panel weight lives at horizon three, and per-horizon target scaling differs by a factor of more than four.
+This project addresses a large-scale panel time series forecasting problem derived from anonymized hedge fund data, where the objective is to predict future values of a target variable across multiple heterogeneous series under a weighted evaluation metric. The problem is challenging due to heavy-tailed distributions, extreme weight concentration, non-stationarity, and varying lengths of historical data across series.
+\\
+\\
+The study adopts a diagnostic-driven approach, beginning with extensive exploratory data analysis to understand missingness patterns, distributional properties, and weight imbalance. Stationarity is assessed using ADF and KPSS tests, followed by transformations such as first differencing to stabilize the series. Classical forecasting models, including smoothing methods, AR, MA, ARMA, and ARIMA, are applied to representative series selected based on length, volatility, and weight characteristics. In parallel, deep learning models such as RNN, GRU, and LSTM are implemented using adaptive chronological splits to address limitations of fixed training windows.
+\\
+\\
+The results demonstrate that no single model universally outperforms others across all series. Simple smoothing methods perform well on stable, low-variance series, while differenced ARIMA models and recurrent neural networks show superior performance on volatile and high-weight series. The findings highlight the importance of aligning model choice with data characteristics and evaluation metrics.
+\\
+\\
+Overall, this work emphasizes that effective hedge fund forecasting requires a combination of statistical diagnostics, model adaptability, and careful consideration of panel heterogeneity.
 \end{abstract}
 
-\vspace{12pt}
-
+\clearpage
 \tableofcontents
 
 \input{sections/01_problem_statement}
@@ -68,5 +81,10 @@
 \input{sections/04_eda}
 \input{sections/05_classical}
 \input{sections/06_deep_sequence_models}
+\input{sections/07_global_lgbm}
+\input{sections/08_analysis_numerical_results}
+\input{sections/09_actions}
+\input{sections/10_future_work}
+\input{sections/11_references}
 
 \end{document}

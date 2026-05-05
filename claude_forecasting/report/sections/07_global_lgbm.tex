@@ -1,0 +1,132 @@
+\section{Global Gradient-Boosted Models}
+\label{sec:lgbm}
+
+This section trains a global gradient-boosted regressor (LightGBM) on the entire training panel, with one model per forecast horizon. It is the first chapter where the modelling work is panel-aware: the same model sees rows from every series, learns cross-series structure, uses the 86 anonymised features alongside engineered causal lag and rolling features, and is evaluated on the canonical chronological holdout slice $\mathtt{ts\_index} \in [3241, 3601]$. The headline finding is that LightGBM substantively beats the Naive (lag-1) floor on the metric-decisive horizon H3 (skill $0.66$ versus $0.46$), with marginal but statistically significant gains at H10 and H25 and a modest gain at H1.
+
+\subsection{Setup, splits, and feature engineering}
+\label{sec:lgbm:setup}
+
+We use the canonical chronological splits defined in \texttt{cf.splits}: training rows have $\mathtt{ts\_index} \le 2880$, the holdout window is $\mathtt{ts\_index} \in (3240, 3601]$, and the meta slice $\mathtt{ts\_index} \in (2880, 3240]$ is reserved for downstream ensemble fitting and is not touched here. Inside the training segment, the last fifth (\(\mathtt{ts\_index} > 2700\)) is reserved as an inner-validation tail for early stopping; chronology is preserved so no future information leaks into training.
+
+Each row's feature vector contains:
+
+\begin{itemize}
+  \item the 86 raw \texttt{feature\_*} columns;
+  \item five causal lag features $y_{t-1}, y_{t-2}, y_{t-3}, y_{t-5}, y_{t-10}$ on the target (motivated by the panel ACF in \cref{sec:eda:acf});
+  \item six causal rolling statistics (rolling mean and rolling standard deviation at windows 5, 10, and 25), all computed with a one-step shift to prevent target leakage;
+  \item three integer-encoded categoricals (\texttt{code}, \texttt{sub\_code}, \texttt{sub\_category}) passed via LightGBM's native categorical handling.
+\end{itemize}
+
+Lag and rolling features are computed grouped by series so that the windows do not cross series boundaries. Rows whose lag features cannot be computed (the first ten rows of every series) are dropped from training. \texttt{ts\_index} is deliberately excluded from the feature set: including it would let the model learn calendar position rather than series structure, which would not generalise to the held-out test partition.
+
+\subsection{Per-horizon training, not pooled}
+\label{sec:lgbm:per_horizon}
+
+Section~\ref{sec:multihorizon} of the EDA showed that the target standard deviation grows from approximately 11.7 at H1 to 52.8 at H25, a factor of $4.5$. A pooled model would be dominated by H25 magnitudes and predict at H25 scale, overshooting H1 targets by roughly the same factor. We therefore train four separate LightGBM models, one per horizon, each on its own subset of the training panel. The competition \texttt{weight} column is passed as the LightGBM \texttt{sample\_weight} so the model directly optimises for the metric that decides the leaderboard.
+
+\subsection{Hyperparameter tuning via Optuna}
+\label{sec:lgbm:tuning}
+
+Per horizon we run 20 Optuna trials over a small set of LightGBM hyperparameters (\texttt{num\_leaves}, \texttt{learning\_rate}, \texttt{min\_data\_in\_leaf}, \texttt{feature\_fraction}, \texttt{bagging\_fraction}, \texttt{lambda\_l1}, \texttt{lambda\_l2}). To keep tuning compute under an hour, each trial fits on a 200{,}000-row stratified subsample of the per-horizon training set; the best hyperparameter combination found is then refit on the full per-horizon training set with early stopping. The tuning criterion is the weighted skill score on the inner-validation tail. This gives a principled hyperparameter selection without the multiple-comparisons inflation of a hand-picked grid.
+
+\subsection{Per-horizon leaderboard with bootstrap CIs}
+\label{sec:lgbm:leaderboard}
+
+\Cref{tab:lgbm_leaderboard} reports the per-horizon weighted skill score on the canonical holdout, with 95\% bootstrap intervals from 500 row-resamples and the Naive (lag-1) floor for comparison.
+
+\begin{table}[h]
+\centering
+\caption{Per-horizon LightGBM leaderboard on the canonical holdout. ``Skill (95\% CI)'' is the bootstrap interval over 500 row-resamples. ``Naive floor'' is the weighted skill of the lag-1 forecast on the same holdout. ``Lift'' is the absolute skill gain over Naive.}
+\label{tab:lgbm_leaderboard}
+\begin{tabular}{c c c c c c}
+\toprule
+Horizon & Holdout rows & Skill (95\% CI) & Naive floor & Lift & Best iteration \\
+\midrule
+H1  & 148{,}661 & $0.056$ \,$[0.045, 0.065]$  & $0.000$ & $+0.06$ &    12 \\
+H3  & 147{,}470 & $\mathbf{0.664}$ \,$[\mathbf{0.657}, \mathbf{0.671}]$  & $0.464$ & $\mathbf{+0.20}$ &   370 \\
+H10 & 141{,}104 & $0.848$ \,$[0.843, 0.852]$  & $0.820$ & $+0.03$ & 1{,}217 \\
+H25 & 128{,}238 & $0.912$ \,$[0.909, 0.915]$  & $0.903$ & $+0.01$ &   552 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The bootstrap intervals are tight (each spans about $0.005$--$0.015$) because the holdout slice contains $128$k--$148$k rows per horizon, so resampling means are stable. The qualitative pattern is the substantive content of the table:
+
+\begin{itemize}
+  \item \textbf{H3 is the metric-decisive horizon and LightGBM moves it the most.} Skill rises from $0.464$ (Naive) to $\mathbf{0.664}$ (LightGBM), a $+0.20$ absolute lift. This is the biggest single contribution of the chapter.
+  \item \textbf{H10 and H25 are already strong under Naive} ($0.820$ and $0.903$ respectively) because the cumulation property documented in \cref{sec:cumulation} means the lag-1 H10 and H25 targets are themselves close approximations of the next-step value. LightGBM still adds significant skill ($+0.03$ and $+0.01$ respectively, both with CIs that exclude the Naive value), but the margin is small.
+  \item \textbf{H1 is hardest.} Skill is only $0.056$, but the Naive floor at H1 is exactly $0.000$, so the lift is meaningful in relative terms. The features carry weak short-horizon signal --- the LightGBM model trained only 12 trees before early stopping, indicating very little extractable structure beyond what the lag-1 already provides.
+\end{itemize}
+
+\Cref{fig:lgbm_skill_bars} visualises the same data. The H3 gap between the LightGBM and Naive bars is striking; the H10 and H25 bars are visually nearly equal.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{03_per_horizon_skill_bars}
+\caption{Per-horizon weighted skill on the canonical holdout. Blue bars are LightGBM with bootstrap 95\% CIs (error bars), grey bars are the Naive (lag-1) floor on the same rows. The H3 gap is the headline result of this chapter.}
+\label{fig:lgbm_skill_bars}
+\end{figure}
+
+\subsection{H3 as the headline}
+\label{sec:lgbm:h3}
+
+Section~\ref{sec:weight_per_horizon} of the EDA established that H3 holds approximately $43.6\%$ of the top-$1\%$ weight mass and the maximum panel weight ($1.39 \times 10^{13}$). H3 alone effectively decides the weighted skill score on the panel. We therefore report the H3 number as a separate headline:
+
+\begin{quote}
+\textbf{Headline.} Global LightGBM trained per horizon on the canonical chronological split achieves weighted skill $\mathbf{0.664}$ on the H3 holdout window, $95\%$ bootstrap CI $[\mathbf{0.657}, \mathbf{0.671}]$, beating the Naive (lag-1) floor of $0.464$ by an absolute $+0.20$ skill. The H3 holdout contains $147{,}470$ rows.
+\end{quote}
+
+This is the first concrete piece of empirical evidence that the H3 weight-dominance finding in the EDA is actionable: a model that takes H3 seriously, trains on it directly, and uses sample weights produces a substantive improvement on the horizon that decides the leaderboard.
+
+\subsection{Feature importance and the collinearity caveat}
+\label{sec:lgbm:importance}
+
+\Cref{fig:lgbm_importance} shows the top fifteen features per horizon ranked by gain. The 86 anonymised raw features are rendered in blue, the engineered lag and rolling features in orange, and the integer-encoded categoricals in green.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{03_feature_importance_per_horizon}
+\caption{LightGBM gain-based feature importance, top fifteen per horizon. Blue: 86 raw \texttt{feature\_*} columns. Orange: engineered lag and rolling-statistic features. Green: integer-encoded categorical (\texttt{code}, \texttt{sub\_code}, \texttt{sub\_category}).}
+\label{fig:lgbm_importance}
+\end{figure}
+
+Two qualitative observations. First, engineered lag features (orange) appear prominently across all four horizons --- the model is extracting useful short-memory signal from the target itself, consistent with the persistent low-order ACF documented in \cref{sec:eda:acf}. Second, several anonymised raw features rank highly but they are the same ones that ranked highly on simple Pearson correlation with the target in \cref{sec:eda:feature_audit}, where we also documented strong feature-feature correlation among the top set. As a result the ranking should be read with collinearity in mind: a feature near the top is informative, but it may be carrying signal that other top-ranked features also carry, so its individual ranking is not unique.
+
+\subsection{Forecast overlays on the four representative series}
+\label{sec:lgbm:overlay}
+
+For visual continuity with \cref{sec:classical} and \cref{sec:deep}, \cref{fig:lgbm_overlay} overlays the global LightGBM predictions on each of the four representative series alongside the corresponding best classical model and best deep configuration from earlier chapters.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{03_forecast_overlay_4series}
+\caption{Predictions of global LightGBM (blue), the best classical model from \cref{sec:classical} (brown), and the best deep configuration from \cref{sec:deep} (red), overlaid on the four representative series. Black is the truth. Vertical dashed lines mark the canonical train/validation cutoff (left) and the canonical holdout end (right). LightGBM predictions are shown over the full $\mathtt{ts\_index}$ range available for each series; classical and deep predictions are shown only over the validation segments where they were originally scored.}
+\label{fig:lgbm_overlay}
+\end{figure}
+
+A caveat on this figure: the three model families were not scored on identical evaluation slices. Classical and deep used adaptive per-series 80/20 splits in \cref{sec:classical:setup} and \cref{sec:deep:setup}, while LightGBM here uses the canonical full-panel chronological split. The visual comparison is therefore directional, not strictly apples-to-apples. The final-comparison chapter reconciles by re-scoring on a single slice.
+
+\subsection{Residuals versus row weight}
+\label{sec:lgbm:residual}
+
+Because the metric weights rows extremely unevenly, the most informative residual diagnostic is whether the LightGBM model fails specifically on high-weight rows. \Cref{fig:lgbm_residual} bins the holdout rows by weight decile and shows mean absolute error per bin, separately for each horizon.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\linewidth]{03_residual_vs_weight}
+\caption{Mean absolute error on the holdout by weight decile (0 = lowest weight, 9 = highest), one line per horizon, log-scaled $y$-axis.}
+\label{fig:lgbm_residual}
+\end{figure}
+
+Mean absolute error rises with weight decile across every horizon. This is the expected pattern --- high-weight rows in this panel correspond to series operating at larger numerical scales, so absolute errors are larger there in absolute terms. The relevant fact is that the model does not catastrophically fail on the high-weight rows: the error growth is monotone and gradual, not a step function at the top decile. This is consistent with the $+0.20$ skill lift on H3, where the high-weight mass is concentrated.
+
+\subsection{What this chapter establishes}
+\label{sec:lgbm:conclusions}
+
+Three points to carry forward:
+
+\begin{enumerate}
+  \item \textbf{Per-horizon training with sample weights, on the full panel, is the right architecture for this dataset.} It avoids the per-horizon-scale failure mode that broke the original XGBoost run in earlier project artefacts, and it directly optimises the metric that decides the leaderboard.
+  \item \textbf{The H3 result ($0.664$ vs Naive $0.464$) is the strongest empirical finding in the project so far.} It validates the H3 weight-dominance argument from the EDA: when a model takes H3 seriously, the leaderboard moves.
+  \item \textbf{Long-horizon Naive is hard to beat for structural reasons.} The cumulation property in \cref{sec:cumulation} means H10 and H25 lag-1 forecasts are themselves close to next-step values; LightGBM beats Naive at every horizon but the margin shrinks at longer horizons. The next chapter operationalises the cumulation property directly: rather than fitting four independent per-horizon models, it tests whether fitting H1 alone and aggregating to H3, H10, H25 can recover --- or surpass --- the per-horizon results above.
+\end{enumerate}

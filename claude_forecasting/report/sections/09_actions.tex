@@ -1,0 +1,27 @@
+\section{Converting the Forecast into Actions}
+\label{sec:actions}
+
+A weighted skill score above the naive floor is only useful if the forecast can be turned into an action that produces value at the scale of the weight on each row. This section sketches how a hedge-fund operator would translate the per-horizon predictions produced in \cref{sec:lgbm} into deployable position decisions.
+
+\subsection{Weight as economic significance}
+
+The competition \texttt{weight} column is plausibly a proxy for assets under management, notional traded size, or a similar measure of how much economic significance a particular row carries. In any of those interpretations, two operational consequences follow. First, the model's accuracy on the small set of high-weight rows determines how much capital the strategy can profitably deploy. Second, an action plan has to scale per-row position size by the local confidence in the forecast --- not just the point estimate.
+
+\subsection{From point forecast to position size}
+
+A simple deployable rule is to scale the absolute position taken on row $i$ proportionally to the predicted target sign and to the model's confidence on that row. Under a quadratic-utility approximation, the optimal position is
+\[
+  \pi_i \;\propto\; \frac{\hat y_i}{\sigma_i^2},
+\]
+where $\hat y_i$ is the point forecast and $\sigma_i$ is the predicted forecast uncertainty on the same row. The point forecast comes from the LightGBM model in \cref{sec:lgbm}; the uncertainty $\sigma_i$ is exactly what the probabilistic forecasting work scheduled for a later notebook will provide via quantile regression and split conformal calibration.
+
+\subsection{Risk controls}
+
+In practice, a deployment would also need:
+\begin{itemize}
+  \item \emph{Hard position limits} per series and per code, so a single high-weight row cannot dominate the portfolio.
+  \item \emph{Coverage monitoring} on the conformal prediction intervals, so the operator can detect distribution drift between the training panel and live data.
+  \item \emph{H3 tracking}, since H3 is the metric-decisive horizon (\cref{sec:weight_per_horizon}); H3-specific live skill should be a top-line dashboard metric.
+\end{itemize}
+
+This chapter will be expanded with the conformal-interval implementation and a worked numerical example after the probabilistic forecasting notebook lands.

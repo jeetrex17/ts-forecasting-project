@@ -1,0 +1,21 @@
+\section{References}
+\label{sec:references}
+
+\textit{Bibliography to be expanded with full BibTeX entries.} The methodology developed in this report draws on the following primary references:
+
+\begin{enumerate}
+  \item Box, G.~E.~P.\ and Jenkins, G.~M., \emph{Time Series Analysis: Forecasting and Control}, Holden-Day, 1970. The canonical reference for the AR / MA / ARMA / ARIMA family used in \cref{sec:classical}.
+  \item Dickey, D.~A.\ and Fuller, W.~A., ``Distribution of the Estimators for Autoregressive Time Series with a Unit Root'', \emph{Journal of the American Statistical Association}, 74(366a):427--431, 1979. Augmented Dickey--Fuller test, used in \cref{sec:eda:stationarity}.
+  \item Kwiatkowski, D.\ et al., ``Testing the Null Hypothesis of Stationarity Against the Alternative of a Unit Root'', \emph{Journal of Econometrics}, 54(1--3):159--178, 1992. KPSS test, used in \cref{sec:eda:stationarity}.
+  \item Cleveland, R.~B.\ et al., ``STL: A Seasonal-Trend Decomposition Procedure Based on Loess'', \emph{Journal of Official Statistics}, 6(1):3--73, 1990. STL decomposition used in \cref{sec:eda:stl}.
+  \item Akaike, H., ``A New Look at the Statistical Model Identification'', \emph{IEEE Transactions on Automatic Control}, 19(6):716--723, 1974. Akaike Information Criterion, with the small-sample-corrected variant of \cite{burnham_anderson} used for model selection in \cref{sec:classical:lineup}.
+  \item Ke, G.\ et al., ``LightGBM: A Highly Efficient Gradient Boosting Decision Tree'', \emph{NeurIPS} 2017. The gradient-boosted regressor used in \cref{sec:lgbm}.
+  \item Akiba, T.\ et al., ``Optuna: A Next-generation Hyperparameter Optimization Framework'', \emph{KDD} 2019. The Bayesian hyperparameter sweep used in \cref{sec:lgbm:tuning}.
+  \item Hochreiter, S.\ and Schmidhuber, J., ``Long Short-Term Memory'', \emph{Neural Computation}, 9(8):1735--1780, 1997. LSTM architecture used in \cref{sec:deep}.
+  \item Cho, K.\ et al., ``Learning Phrase Representations Using RNN Encoder-Decoder for Statistical Machine Translation'', \emph{EMNLP} 2014. GRU architecture used in \cref{sec:deep}.
+  \item Vovk, V., Gammerman, A.\ and Shafer, G., \emph{Algorithmic Learning in a Random World}, Springer, 2005. Conformal prediction framework, scheduled for the probabilistic forecasting chapter.
+  \item Romano, Y., Patterson, E.\ and Cand\`es, E., ``Conformalized Quantile Regression'', \emph{NeurIPS} 2019. CQR construction used in the probabilistic forecasting chapter.
+  \item Burnham, K.~P.\ and Anderson, D.~R., \emph{Model Selection and Multimodel Inference}, Springer, 2002. Recommends AICc whenever $n / k < 40$.
+\end{enumerate}
+
+Additional references on the Kaggle competition page itself, the polars dataframe library, statsmodels, MAPIE, and PyTorch will be added in the final pass.

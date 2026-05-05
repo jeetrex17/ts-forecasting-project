@@ -1,0 +1,13 @@
+\section{Future Work}
+\label{sec:future_work}
+
+Several extensions would meaningfully strengthen the project beyond the current scope:
+
+\begin{enumerate}
+  \item \textbf{Multi-horizon aggregation experiment.} Operationalise the cumulation hypothesis in \cref{sec:cumulation} by training a single LightGBM on the H=1 process and deriving H3, H10, H25 forecasts by rolling sum. Compare to the per-horizon-independent fits in \cref{sec:lgbm}.
+  \item \textbf{Probabilistic forecasting via quantile regression and split conformal calibration.} Replace point forecasts with calibrated 80\% prediction intervals on every series. The legacy code in \texttt{Finial\_notebooks/04\_quantile\_regression\_codex.ipynb} provides a starting point; tighter integration with the canonical evaluation slice and bootstrap intervals on PICP coverage are the natural extensions.
+  \item \textbf{Ensembles with leak-resistant fitting.} Fit weighted averages, ridge-stacking models, and per-series/per-horizon selection rules on the meta slice $\mathtt{ts\_index} \in (2880, 3240]$, score on the canonical holdout. The meta slice was reserved untouched across every chapter precisely so this experiment can be done without leakage.
+  \item \textbf{Feature-aware deep models beyond recurrent architectures.} Test temporal convolutional networks (TCN) and small MLP-on-features variants under the same protocol used in \cref{sec:deep}. The expectation is that on this signal-poor panel the gain over feature-aware GRU is modest, but the comparison would close out the deep section.
+  \item \textbf{Hyperparameter tuning depth.} The Optuna sweep in \cref{sec:lgbm} used 20 trials per horizon on a 200{,}000-row subsample. Extending to 50--100 trials per horizon on the full panel might add a small skill increment, especially on H3.
+  \item \textbf{Cross-series transfer.} The 86 anonymised features and the cross-series correlations in \cref{sec:eda:cross_series} suggest there is shared structure across sub-codes within a code. A multi-task model that predicts all four horizons simultaneously, sharing a learned representation across sub-codes, could exploit this in a way the current per-horizon LightGBM does not.
+\end{enumerate}
