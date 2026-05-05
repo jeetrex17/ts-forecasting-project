@@ -95,16 +95,18 @@ Two qualitative observations. First, engineered lag features (orange) appear pro
 \subsection{Forecast overlays on the four representative series}
 \label{sec:lgbm:overlay}
 
-For visual continuity with \cref{sec:classical} and \cref{sec:deep}, \cref{fig:lgbm_overlay} overlays the global LightGBM predictions on each of the four representative series alongside the corresponding best classical model and best deep configuration from earlier chapters.
+For visual continuity with \cref{sec:classical} and \cref{sec:deep}, \cref{fig:lgbm_overlay} overlays the global LightGBM predictions on the four representative series alongside the corresponding best classical model and best deep configuration. Each panel's $x$-axis is cropped to a window beginning roughly 120 steps before the canonical train/validation cutoff, with the post-cutoff region shaded for clarity. Truth is rendered as a thin muted line; LightGBM as a thicker vivid line drawn on top so it remains visible where it tracks the truth closely. Classical and deep predictions are shown only over their respective scoring windows. Per-line skill annotations in the legend are computed on the segment where each model has predictions.
 
 \begin{figure}[h]
 \centering
 \includegraphics[width=\linewidth]{03_forecast_overlay_4series}
-\caption{Predictions of global LightGBM (blue), the best classical model from \cref{sec:classical} (brown), and the best deep configuration from \cref{sec:deep} (red), overlaid on the four representative series. Black is the truth. Vertical dashed lines mark the canonical train/validation cutoff (left) and the canonical holdout end (right). LightGBM predictions are shown over the full $\mathtt{ts\_index}$ range available for each series; classical and deep predictions are shown only over the validation segments where they were originally scored.}
+\caption{Predictions of global LightGBM (vivid blue), the best classical model from \cref{sec:classical} (brown), and the best deep configuration from \cref{sec:deep} (red), overlaid on the four representative series. Truth is the thin grey line. The light orange band marks the post-cutoff region. Vertical dashed line: canonical train/validation cutoff. Skill values in the legend are weighted skill scores on the post-cutoff segment available for each model.}
 \label{fig:lgbm_overlay}
 \end{figure}
 
-A caveat on this figure: the three model families were not scored on identical evaluation slices. Classical and deep used adaptive per-series 80/20 splits in \cref{sec:classical:setup} and \cref{sec:deep:setup}, while LightGBM here uses the canonical full-panel chronological split. The visual comparison is therefore directional, not strictly apples-to-apples. The final-comparison chapter reconciles by re-scoring on a single slice.
+A caveat on this figure: the three model families were not scored on identical evaluation slices. Classical and deep used adaptive per-series 80/20 splits in \cref{sec:classical:setup} and \cref{sec:deep:setup}, while LightGBM was trained on the canonical full-panel split. The four representative series end before the canonical holdout window begins ($\mathtt{ts\_index} = 3241$), so what the figure shows for LightGBM is its post-cutoff prediction on the same segment classical and deep used --- which is methodologically the cleanest available comparison on these specific four series. The fully unified leaderboard, with all model families re-scored on a single slice, is built in \cref{sec:analysis}.
+
+The most-volatile panel is the visually most striking case: global LightGBM tracks the validation trajectory almost perfectly (skill $\approx 0.97$ on the local segment), substantively above both the classical Rolling Mean (0.80) and the feature-aware GRU (0.87). The highest-weight panel shows a similar story at much smaller numerical scale. The longest-history and most-stable panels are inside-noise --- consistent with the scope-demonstration framing in \cref{sec:classical:conclusions} and \cref{sec:deep:conclusions}.
 
 \subsection{Residuals versus row weight}
 \label{sec:lgbm:residual}

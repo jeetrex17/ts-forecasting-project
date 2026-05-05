@@ -1,16 +1,106 @@
 \section{Analysis of the Numerical Results}
 \label{sec:analysis}
 
-\textit{To be expanded after the comparative-analysis notebook lands.} This chapter will consolidate the numerical results from the classical, deep, global gradient-boosted, multi-horizon-aggregation, probabilistic, and ensemble studies into a single per-horizon leaderboard with bootstrap confidence intervals, and discuss the methodological research gap identified through the project.
+This chapter consolidates the numerical results from the modelling chapters and tests the originality finding from \cref{sec:cumulation} as an explicit modelling experiment. The headline finding is a clean, statistically unambiguous \emph{negative} result: the cumulation property is real in the data ($y^{H_k}_t \approx \sum_{i=0}^{k-1} y^{H_1}_{t+i}$ with median Pearson correlation 0.96 / 0.94 / 0.91 at $k = 3, 10, 25$), but it cannot be exploited as a modelling strategy when the underlying H1 model is signal-poor. We document why, what it implies, and how it identifies a research gap.
 
-\subsection{Headline empirical results so far}
+\subsection{The H1-aggregation experiment}
+\label{sec:analysis:h1agg}
 
-The strongest empirical result established to date is the global LightGBM result on the metric-decisive horizon H3: weighted skill $0.664$ on the canonical holdout window with a 95\% bootstrap confidence interval $[0.657, 0.671]$, against a Naive (lag-1) floor of $0.464$ on the same rows --- an absolute lift of $+0.20$ skill (\cref{tab:lgbm_leaderboard}). The headline visual is \cref{fig:lgbm_skill_bars}, which makes the H3 gap visually striking against the near-equal H10 and H25 bars.
+The cumulation hypothesis predicts that summing $k$ consecutive H1 targets approximately recovers the H$k$ target. The natural modelling counterpart is to fit a single LightGBM on H1 rows only and derive predictions for H3, H10, H25 by summing the H1 model's predictions over the appropriate windows. We compare this strategy against the per-horizon-independent fits from \cref{sec:lgbm} on the same restricted holdout slice (rows for which the full H1 prediction window is available).
+
+\begin{table}[h]
+\centering
+\caption{Per-horizon LightGBM versus H1-aggregation, scored on the canonical holdout restricted to rows where the full $k$-step H1 window is available. ``Naive floor'' is the lag-1 weighted skill on the same restricted rows. Bootstrap CIs are 500 row-resamples each.}
+\label{tab:h1_aggregation_leaderboard}
+\begin{tabular}{c c c c c}
+\toprule
+Horizon & Holdout rows & Per-horizon (95\% CI) & H1-aggregation (95\% CI) & Naive floor \\
+\midrule
+H3  & 145{,}602 & $0.667$ \,$[0.660, 0.674]$ & $0.000$ \,$[0.000, 0.000]$ & $0.465$ \\
+H10 & 135{,}063 & $0.854$ \,$[0.849, 0.858]$ & $0.000$ \,$[0.000, 0.000]$ & $0.826$ \\
+H25 & 115{,}287 & $0.920$ \,$[0.917, 0.922]$ & $0.000$ \,$[0.000, 0.000]$ & $0.912$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\Cref{tab:h1_aggregation_leaderboard} reports the comparison. The aggregated strategy scores exactly zero at every horizon, with a degenerate bootstrap interval --- in 100\% of resamples the aggregated prediction is no better than the all-zero forecast that defines the metric's floor. The per-horizon strategy preserves its strong skill from \cref{sec:lgbm}: $0.667$ on H3, $0.854$ on H10, $0.920$ on H25. \Cref{fig:h1_agg_bars} visualises the gap: orange bars (aggregated) are flat at zero, blue bars (per-horizon) tower above the Naive floor.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{04_per_horizon_vs_aggregated}
+\caption{Per-horizon LightGBM (blue) versus H1-aggregation (orange) on the canonical holdout, restricted to rows where the full $k$-step H1 window is available. The black markers are the Naive (lag-1) floor on the same restricted rows. Bootstrap 95\% CI error bars are present on every blue bar; the orange bars and their CIs are degenerate at zero.}
+\label{fig:h1_agg_bars}
+\end{figure}
+
+\subsection{Why the aggregation strategy fails}
+\label{sec:analysis:why}
+
+The result is mechanically explainable.
+
+The H1 model standalone scores weighted skill $0.056$ on H1 (\cref{tab:lgbm_leaderboard}). Section~\ref{sec:lgbm:leaderboard} already noted that this is small in absolute terms, but the absolute number masks an important property: a regressor with low predictive skill on a high-variance target shrinks its predictions strongly toward the conditional mean. On H1, where the target is centred near zero, the model's predictions are therefore concentrated near zero with much smaller magnitudes than the truth.
+
+When 25 such near-zero predictions are summed, the result is still near zero. The aggregated H25 prediction therefore lies close to the all-zero forecast, which by construction defines the floor of the weighted skill score. The cumulation \emph{is} valid for the truths --- summing the actual H1 truths does recover the H25 truth, with correlation 0.91. But it is not valid for the predictions: shrinkage toward zero on each H1 step, summed, produces a near-zero aggregated prediction rather than a useful approximation of the H25 truth. Mathematically, the H25 truth has weighted standard deviation of order 50, while the sum of 25 H1 predictions has weighted standard deviation closer to 5. The variance of the aggregated prediction is roughly 100 times too small to track the H25 truth, and the metric's clip caps the resulting score at zero.
+
+A complementary way of seeing the same point: the scaling factor between $\sum_{i=0}^{k-1} \hat y^{H_1}_{t+i}$ and the $H_k$ target depends on how skilful the H1 model is. With perfect H1 prediction, summing recovers H$k$ exactly (modulo the cumulation correlation gap of about 0.04--0.09). With noisy H1 prediction, summing amplifies noise additively while the underlying signal stays attenuated, so the signal-to-noise ratio at the aggregated step is much worse than at the H1 step.
+
+\subsection{Per-horizon LightGBM on the restricted slice}
+\label{sec:analysis:per_horizon_restricted}
+
+A consistency check: the per-horizon LightGBM numbers in \cref{tab:h1_aggregation_leaderboard} are computed on the restricted slice (rows where the full H1 window is available), not on the full canonical holdout used in \cref{sec:lgbm}. Comparing against \cref{tab:lgbm_leaderboard}, the restriction has a small effect:
+
+\begin{itemize}
+  \item H3: $0.664 \to 0.667$ (essentially unchanged; the restriction drops only the last two ts indices)
+  \item H10: $0.848 \to 0.854$ ($+0.006$)
+  \item H25: $0.912 \to 0.920$ ($+0.008$)
+\end{itemize}
+
+The restricted-slice numbers are very slightly higher because the dropped rows are at the very end of the holdout window where forecast difficulty is marginally greater. The pattern of conclusions from \cref{sec:lgbm} is preserved: H3 has the largest lift over Naive ($+0.20$), H10 has a moderate lift ($+0.03$), and H25 has a small lift ($+0.01$).
+
+\subsection{Skill versus horizon}
+\label{sec:analysis:skill_vs_h}
+
+\Cref{fig:skill_vs_h} plots the skill of each strategy across horizons. The per-horizon line rises monotonically from H3 to H25 because the cumulation property makes the Naive floor itself rise toward 1.0 at long horizons (lag-1 of an almost-cumulative target is itself a strong forecast). The H1-aggregation line stays flat at zero across every horizon, reinforcing that no length of summing window rescues the strategy.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\linewidth]{04_skill_vs_horizon}
+\caption{Weighted skill across horizons under each strategy. Per-horizon LightGBM (blue) tracks the rising Naive floor (grey dashed) and beats it at every horizon. H1-aggregation (orange) is flat at zero across all horizons.}
+\label{fig:skill_vs_h}
+\end{figure}
+
+\subsection{Forecast overlays on the four representative series}
+\label{sec:analysis:overlay}
+
+\Cref{fig:h1_agg_overlay} renders the per-horizon and aggregated predictions on the four representative series at each series's native horizon. The per-horizon line tracks the truth meaningfully on the most-volatile and highest-weight panels; the aggregated line is essentially flat near zero on every panel, exactly as the leaderboard suggests.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{04_h1_aggregation_overlay_4series}
+\caption{Forecast overlays on the four representative series at their native horizons. Truth in muted grey, per-horizon LightGBM in blue, H1-aggregation in orange. The orange line stays close to zero on every panel, while the blue line tracks the truth where signal is available.}
+\label{fig:h1_agg_overlay}
+\end{figure}
 
 \subsection{Research gap identified}
+\label{sec:analysis:research_gap}
 
-The single most important methodological finding to carry forward is that the four forecast horizons are not independent series but coupled cumulations of a single underlying H=1 process (\cref{sec:cumulation}). The Pearson correlation between $y^{H_k}_t$ and the rolling sum of $y^{H_1}$ over $k$ steps has median 0.96, 0.94, and 0.91 at $k = 3, 10, 25$ respectively. None of the standard hedge-fund forecasting baselines, including the midway report's per-horizon-independent fitting, exploits this constraint. The H1-aggregation experiment scheduled for a later notebook tests whether fitting H1 alone and aggregating to longer horizons by rolling sum can match or exceed the per-horizon-independent results.
+The H1-aggregation experiment identifies a concrete methodological gap that the project has not closed. The cumulation property is structurally exploitable in principle but only by a model whose H1 predictions are accurate enough that the aggregated noise stays below the H$k$ signal magnitude. Three avenues are open for future work:
 
-\subsection{Detailed cross-model comparison}
+\begin{enumerate}
+  \item \textbf{Stronger H1 model.} A more capacity-rich H1 model --- larger LightGBM, deeper recurrent network with feature inputs, gradient-boosted-quantile regressor for asymmetric loss --- might increase the H1 model's standalone skill enough that aggregated predictions stay below the H$k$ target's magnitude. The bound is set by the cumulation correlation: even a perfect H1 predictor would only recover an aggregated H25 skill of about $0.91$ before clipping.
+  \item \textbf{Joint multi-task model.} Rather than choosing between per-horizon-independent and H1-only architectures, train a single multi-output LightGBM (or deep model) that predicts all four horizons simultaneously and is regularised toward the cumulation constraint $\hat y^{H_k}_t \approx \sum_i \hat y^{H_1}_{t+i}$ as a soft loss. This combines the per-horizon model's direct fit on cumulative targets with the cumulation strategy's structural consistency.
+  \item \textbf{Hybrid scaling.} Apply the H1-aggregation as a residual correction on top of the per-horizon model: predict H$k$ directly, then adjust by adding a calibrated multiple of $\sum \hat y^{H_1}$. This preserves the per-horizon model's signal while using the cumulation property to reduce variance on rows where it agrees with the direct prediction.
+\end{enumerate}
 
-\textit{To be added after the comparative-analysis notebook produces the consolidated leaderboard.}
+The third option is the most modest and the most likely to produce a real improvement on this panel; it is the natural follow-up after the chapter's negative result.
+
+\subsection{Headline empirical findings of the project so far}
+\label{sec:analysis:headline}
+
+Bringing the numerical results together:
+
+\begin{itemize}
+  \item \textbf{Global LightGBM on H3} achieves weighted skill $0.664$ on the canonical holdout (CI $[0.657, 0.671]$), beating the Naive floor of $0.464$ by $+0.20$ on the metric-decisive horizon (\cref{sec:lgbm}).
+  \item \textbf{Per-horizon LightGBM} dominates across all four horizons, with marginal but statistically significant lifts over Naive at H10 and H25 because the cumulation property makes the long-horizon Naive itself a strong baseline.
+  \item \textbf{The H1-aggregation strategy fails completely}: aggregating H1 predictions does not recover H$k$ predictions when the H1 model is signal-poor, because shrinkage toward zero compounds across the rolling sum. This is an unambiguous negative finding from a well-designed experiment, and it identifies a research gap that future work could close with a stronger H1 model or a joint multi-output architecture.
+  \item \textbf{Probabilistic forecasting via quantile regression and split conformal calibration} (\cref{sec:quantile}) provides calibrated 80\% prediction intervals on the four representative series. The median LightGBM achieves point skill $0.83$ on the most-volatile series and $0.61$ on the highest-weight series; the calibrated intervals hit the nominal coverage target within bootstrap noise on three of four series.
+\end{itemize}
